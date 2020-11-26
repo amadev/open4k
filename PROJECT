@@ -1,0 +1,7 @@
+domain: amadev.ru
+layout: go.kubebuilder.io/v2
+projectName: open4k
+repo: github.com/amadev/open4k
+version: 3-alpha
+plugins:
+  go.sdk.operatorframework.io/v2-alpha: {}
