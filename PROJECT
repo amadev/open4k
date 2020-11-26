@@ -9,6 +9,9 @@ resources:
 - group: open4k
   kind: Instance
   version: v1alpha1
+- group: open4k
+  kind: Flavor
+  version: v1alpha1
 version: 3-alpha
 plugins:
   go.sdk.operatorframework.io/v2-alpha: {}

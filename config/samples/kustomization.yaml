@@ -2,4 +2,5 @@
 resources:
 - open4k_v1alpha1_cloud.yaml
 - open4k_v1alpha1_instance.yaml
+- open4k_v1alpha1_flavor.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

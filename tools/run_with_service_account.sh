@@ -99,6 +99,7 @@ set_kube_config_values() {
 
 available_controllers=(
     "-m open4k.controllers.instance"
+    "-m open4k.controllers.flavor"
 )
 
 controllers="${available_controllers[*]}"
