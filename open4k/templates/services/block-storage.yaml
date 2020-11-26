@@ -1,0 +1,274 @@
+#apiVersion: lcm.mirantis.com/v1alpha1
+#kind: HelmBundle
+
+{%- set service = 'cinder' %}
+{%- set components_with_dedicated_messaging = spec.get('features', {}).get('messaging', {}).get('components_with_dedicated_messaging', []) %}
+{%- set stacklight_enabled = spec.get('features', {}).get('stacklight', {}).get('enabled', False) %}
+{%- set notification_topics = ['notifications'] %}
+{%- do notification_topics.append('stacklight_notifications') if stacklight_enabled %}
+
+spec:
+  releases:
+{%- if 'block-storage' in components_with_dedicated_messaging %}
+  - name: openstack-cinder-rabbitmq
+    chart: {{spec.common.infra.repo}}/rabbitmq
+    values:
+{% include 'base/_rabbitmq_images.yaml' %}
+  {%- if stacklight_enabled %}
+      monitoring:
+        prometheus:
+          enabled: true
+  {%- endif %}
+      pod:
+        replicas:
+          server: 1
+      manifests:
+        network_policy: false
+        job_users_create: true
+      volume:
+        enabled: false
+      endpoints:
+        cluster_domain_suffix: {{ spec.internal_domain_name }}
+{% include 'base/_messaging_dedicated.yaml' %}
+      conf:
+        users:
+          cinder:
+            auth:
+              service_user:
+                username: {{ credentials.messaging.user.username }}
+                password: {{ credentials.messaging.user.password }}
+            path: /cinder
+        aux_conf:
+          policies:
+          - vhost: cinder
+            name: default-policy
+            pattern: '^(?!amq\.).*'
+            definition:
+              message-ttl: 120000
+          - vhost: cinder
+            name: results_expire
+            pattern: '^results\.'
+            definition:
+              expires: 3600000
+            priority: 1
+          - vhost: cinder
+            name: tasks_expire
+            pattern: '^tasks\.'
+            definition:
+              expires: 3600000
+            priority: 1
+  {%- if stacklight_enabled %}
+        prometheus_exporter:
+          rabbit_exporters: "overview,exchange,node"
+  {%- endif %}
+{%- endif %}
+{%- if spec.get('migration', {}).get('cinder', {}).get('deploy_main_service', True) %}
+  - name: openstack-cinder
+    chart: {{spec.common.openstack.repo}}/cinder
+    values:
+      images:
+        tags:
+{%- for image in [
+    "db_drop",
+    "image_repo_sync",
+    "cinder_api",
+    "cinder_scheduler",
+    "db_init",
+    "dep_check",
+    "cinder_db_sync",
+    "cinder_db_sync_online",
+    "cinder_db_purge",
+    "cinder_backup",
+    "ks_user",
+    "ks_service",
+    "cinder_volume_usage_audit",
+    "cinder_backup_storage_init",
+    "ks_endpoints",
+    "bootstrap",
+    "cinder_storage_init",
+    "rabbit_init",
+    "cinder_volume",
+    "test",] %}
+        {%- if image in images %}
+          {{ image }}: {{ images[image] }}
+        {%- endif %}
+{%- endfor %}
+      dependencies:
+        static:
+          db_init:
+            jobs:
+              - openstack-mariadb-cluster-wait
+      pod:
+        replicas:
+          api: 1
+          registry: 1
+      storage: ceph
+      ceph_client:
+        configmap: rook-ceph-config
+        user_secret_name: {{ ceph.cinder.secrets }}
+      conf:
+        backends:
+{%- set enabled_backends=[] %}
+{%- for backend, backend_config in ceph.cinder.pools.items() %}
+  {%- if backend_config.role == 'volumes' %}
+    {%- do enabled_backends.append(backend) %}
+          {{ backend }}:
+            volume_driver: cinder.volume.drivers.rbd.RBDDriver
+            volume_backend_name: {{ backend }}
+            rbd_pool: {{ backend_config.name }}
+            rbd_user: {{ ceph.cinder.username }}
+            rbd_ceph_conf: "/etc/ceph/ceph.conf"
+  {%- endif %}
+{%- endfor %}
+        ceph:
+          pools:
+            backup:
+              replication: 1
+              crush_rule: replicated_ruleset
+              chunk_size: 8
+            cinder.volumes:
+              replication: 1
+              crush_rule: replicated_ruleset
+              chunk_size: 8
+        cinder:
+          keystone_authtoken:
+            memcache_security_strategy: ENCRYPT
+            memcache_secret_key: {{ credentials.memcached }}
+          DEFAULT:
+# NOTE(vsaienko): active/active mode is supported by rbd starting from Rocky
+{%- if spec.openstack_version not in ['queens'] %}
+            cluster: "cinder-ceph-cluster"
+            host: "<None>"
+{%- endif %}
+{%- if spec.get('features', {}).get('cinder', {}).get('backup', {}).get('backend') == 'ceph' %}
+            backup_driver: cinder.backup.drivers.ceph.CephBackupDriver
+{%- for backend, backend_config in ceph.cinder.pools.items() %}
+  {%- if backend_config.role == 'backup' %}
+            backup_ceph_user: {{ ceph.cinder.username }}
+            backup_ceph_pool: {{ backend_config.name }}
+  {%- endif %}
+{%- endfor %}
+{%- endif %}
+            enabled_backends: {{ enabled_backends|join(',') }}
+            default_volume_type: {{ enabled_backends[0] }}
+          oslo_messaging_notifications:
+            topics: {{ notification_topics|join(',') }}
+          coordination:
+            backend_url: "etcd3+http://etcd:2379"
+          service_user:
+            send_service_user_token: true
+        logging:
+          logger_cinder:
+            level: {{ spec.get('features', {}).get('logging', {}).get('cinder', {}).get('level', 'INFO') }}
+            propagate: 0
+      # NOTE(vsaienko): do not create backends from .Values.conf.cinder.DEFAULT.backends
+      # as we have default backend in chart values rbd1 which is not used.
+      # Do not create volume type for backup, as user can't use this backend directly.
+      bootstrap:
+        bootstrap_conf_backends: false
+        volume_types:
+{%- for backend in enabled_backends %}
+          {{ backend }}:
+            volume_backend_name: {{ backend }}
+{%- endfor %}
+      secrets:
+        rbd:
+          volume: {{ ceph.cinder.secrets }}
+          backup: {{ ceph.cinder.secrets }}
+      manifests:
+        network_policy: false
+        job_rabbit_init: false
+        job_storage_init: false
+        job_backup_storage_init: false
+        secret_ca_bundle: true
+      endpoints:
+        cluster_domain_suffix: {{ spec.internal_domain_name }}
+{% include 'base/_admin_identity.yaml' %}
+{% include 'base/_cache.yaml' %}
+        oslo_db:
+          auth:
+            admin:
+              username: {{ admin_creds.database.username }}
+              password: {{ admin_creds.database.password }}
+            cinder:
+              username: {{ credentials.database.user.username }}
+              password: {{ credentials.database.user.password }}
+{%- if 'block-storage' in components_with_dedicated_messaging %}
+{% include 'base/_messaging_dedicated.yaml' %}
+{%- else %}
+{% include 'base/_messaging_shared.yaml' %}
+{%- endif %}
+{% include 'base/_notifications.yaml' %}
+        volume:
+          enabled: false
+        volumev2:
+          host_fqdn_override:
+            public:
+              host: cinder.{{ spec.public_domain_name }}
+              tls:
+                ca: |
+{{ spec.features.ssl.public_endpoints.ca_cert | indent( width=18, first=True) }}
+                crt: |
+{{ spec.features.ssl.public_endpoints.api_cert | indent( width=18, first=True) }}
+                key: |
+{{ spec.features.ssl.public_endpoints.api_key | indent( width=18, first=True) }}
+          hosts:
+            admin:
+              host: cinder-api
+            default: cinder
+            internal: cinder-api
+            public:
+              host: cinder
+              tls:
+                ca: |
+{{ spec.features.ssl.public_endpoints.ca_cert | indent( width=18, first=True) }}
+                crt: |
+{{ spec.features.ssl.public_endpoints.api_cert | indent( width=18, first=True) }}
+                key: |
+{{ spec.features.ssl.public_endpoints.api_key | indent( width=18, first=True) }}
+          port:
+            api:
+              admin: 8776
+              default: 80
+              internal: 8776
+              public: 443
+          scheme:
+            default: http
+            public: https
+        volumev3:
+          host_fqdn_override:
+            public:
+              host: cinder.{{ spec.public_domain_name }}
+              tls:
+                ca: |
+{{ spec.features.ssl.public_endpoints.ca_cert | indent( width=18, first=True) }}
+                crt: |
+{{ spec.features.ssl.public_endpoints.api_cert | indent( width=18, first=True) }}
+                key: |
+{{ spec.features.ssl.public_endpoints.api_key | indent( width=18, first=True) }}
+          hosts:
+            admin:
+              host: cinder-api
+            default: cinder
+            internal: cinder-api
+            public:
+              host: cinder
+              tls:
+                ca: |
+{{ spec.features.ssl.public_endpoints.ca_cert | indent( width=18, first=True) }}
+                crt: |
+{{ spec.features.ssl.public_endpoints.api_cert | indent( width=18, first=True) }}
+                key: |
+{{ spec.features.ssl.public_endpoints.api_key | indent( width=18, first=True) }}
+          port:
+            api:
+              admin: 8776
+              default: 80
+              internal: 8776
+              public: 443
+          scheme:
+            default: http
+            public: https
+      jobs:
+{% include 'base/_ks_jobs.yaml' %}
+{%- endif %}

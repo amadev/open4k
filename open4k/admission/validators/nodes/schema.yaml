@@ -1,0 +1,156 @@
+type: object
+additionalProperties: False
+patternProperties:
+  ".*::.*":
+    type: object
+    additionalProperties: False
+    properties:
+      features:
+        additionalProperties: False
+        type: object
+        properties:
+          neutron:
+            type: object
+            additionalProperties: False
+            properties:
+              tunnel_interface:
+                type: string
+                description: Physical interface used for tunnel traffic
+              dpdk:
+                type: object
+                additionalProperties: False
+                required:
+                  - enabled
+                  - driver
+                properties:
+                  additionalProperties: True
+                  enabled:
+                    type: boolean
+                    description: Trigger to enable dpdk on the node.
+                  driver:
+                    type: string
+                    description: The dpdk driver to use for NICs
+                  bridges:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - ip_address
+                        - name
+                      properties:
+                        name:
+                          type: string
+                          description: The name of dpdk bridge
+                        ip_address:
+                          type: string
+                          description: IP address to assign to the bridge.
+
+                  nics:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - name
+                        - pci_id
+                        - bridge
+                      properties:
+                        name:
+                          type: string
+                          description: The name of ovs port created for corresponding NIC
+                        pci_id:
+                          type: string
+                          description: The PCI id of NIC
+                        bridge:
+                          type: string
+                          description: The name of bridge to plug NIC
+                  bonds:
+                     type: array
+                     items:
+                       type: object
+                       required:
+                         - name
+                         - bridge
+                         - nics
+                       properties:
+                         name:
+                           type: string
+                           description: The name of dpdk bond.
+                         bridge:
+                           type: string
+                           description: The name of bridge to plug bond.
+                         ovs_options:
+                           type: string
+                           description: Bond openvswitch options, for example bond_mode=active-backup
+                         nics:
+                           type: array
+                           items:
+                             type: object
+                             required:
+                               - name
+                               - pci_id
+                             properties:
+                               name:
+                                 type: string
+                                 description: The name of ovs port created for corresponding NIC
+                               pci_id:
+                                 type: string
+                                 description: The PCI id of NIC
+                  hugepages:
+                    type: object
+                    properties:
+                      size:
+                        type: string
+                        description: The page size to use, default 2Mi
+                        enum:
+                          - 1Gi
+                          - 2Mi
+                      amount:
+                        type: string
+                        description: The amount of hugepages, default 1Gi
+      services:
+        additionalProperties: False
+        type: object
+        properties:
+          load-balancer:
+            type: object
+            additionalProperties: False
+            properties:
+              octavia: &chart_override
+                type: object
+                additionalProperties: False
+                patternProperties:
+                  ".*":
+                    type: object
+                    additionalProperties: False
+                    properties:
+                      values:
+                        type: object
+                        additionalProperties: True
+          networking:
+            type: object
+            additionalProperties: False
+            properties:
+              openvswitch:
+                <<: *chart_override
+              neutron:
+                <<: *chart_override
+          metering:
+            type: object
+            additionalProperties: False
+            properties:
+              ceilometer:
+                <<: *chart_override
+          metric:
+            type: object
+            additionalProperties: False
+            properties:
+              gnocchi:
+                <<: *chart_override
+          compute:
+            type: object
+            additionalProperties: False
+            properties:
+              nova:
+                <<: *chart_override
+              libvirt:
+                <<: *chart_override

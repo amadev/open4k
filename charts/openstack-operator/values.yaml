@@ -1,0 +1,131 @@
+# Default values for openstack-controller.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+global:
+  dockerBaseUrl: mirantis.azurecr.io
+  helmBaseUrl: https://binary.mirantis.com
+
+replicaCount: 1
+
+image:
+  repository: openstack
+  name: openstack-controller
+  tag: 0.3.13
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: "openstack-controller"
+
+kopf:
+  enabled: true
+
+osdpl:
+  namespace: openstack
+  cephSharedNamespace: openstack-ceph-shared
+  settings:
+    raw:
+      OSCTL_NODE_NOT_READY_FLAPPING_TIMEOUT: 120
+      OSCTL_HELMBUNDLE_APPLY_DELAY: 10
+      #Redis namespace, should be different from osdpl namespace to avoid conflicts.
+      OSCTL_REDIS_NAMESPACE: "openstack-redis"
+    osdpl:
+      raw: {}
+    node:
+      raw: {}
+    secrets:
+      raw: {}
+    helmbundle:
+      raw: {}
+    health:
+      raw:
+        PYTHONASYNCIODEBUG: 1
+        KOPF_RUN_DEBUG: 1
+    node_maintenance_request:
+      raw: {}
+  pod:
+    controller:
+      osdpl:
+       liveness:
+         params:
+           initialDelaySeconds: 120
+           periodSeconds: 15
+           timeoutSeconds: 5
+      health:
+        liveness:
+          params:
+            initialDelaySeconds: 120
+            periodSeconds: 15
+            timeoutSeconds: 5
+      node:
+        liveness:
+          params:
+            initialDelaySeconds: 120
+            periodSeconds: 15
+            timeoutSeconds: 5
+      secrets:
+        liveness:
+          params:
+            initialDelaySeconds: 120
+            periodSeconds: 15
+            timeoutSeconds: 5
+      helmbundle:
+        liveness:
+          params:
+            initialDelaySeconds: 120
+            periodSeconds: 15
+            timeoutSeconds: 5
+      node_maintenance_request:
+        liveness:
+          params:
+            initialDelaySeconds: 120
+            periodSeconds: 15
+            timeoutSeconds: 5
+
+tf:
+  createSharedNamespace: true
+  sharedNamespace: openstack-tf-shared
+
+stacklight:
+  createSharedNamespace: true
+  sharedNamespace: openstack-lma-shared
+
+admission:
+  enabled: true
+
+  replicaCount: 1
+
+  cluster_domain_suffix: cluster.local
+
+node_maintenance:
+  enabled: false
+
+  # webhook needs to run with TLS. By default certificates are generated automatically,
+  # if needed can be overridden manually here
+  #tls:
+    #crt:
+    #key:
+    #ca:
+
+iam:
+  enabled: false
+#  client: os
+#  oidcCASecret: oidc-cert
+#  url: https://172.16.43.149
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

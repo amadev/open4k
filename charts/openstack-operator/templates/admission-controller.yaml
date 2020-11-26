@@ -1,0 +1,85 @@
+{{- if .Values.admission.enabled -}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "openstack-controller.fullname" . }}-admission
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 443
+      targetPort: https
+      protocol: TCP
+      name: https
+  selector:
+    app.kubernetes.io/name: {{ include "openstack-controller.fullname" . }}-admission
+    app.kubernetes.io/instance: {{ .Release.Name }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "openstack-controller.fullname" . }}-admission
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.admission.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "openstack-controller.fullname" . }}-admission
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "openstack-controller.fullname" . }}-admission
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      annotations:
+        admission-tls-hash: {{ tuple "admission-controller-tls-secret.yaml" . | include "opentsack-controller.utils.hash" }}
+    spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: {{ tuple . .Values.image | include "getImageUrl" }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - uwsgi
+            - /opt/operator/uwsgi.ini
+          ports:
+            - name: https
+              containerPort: 8443
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: https
+              scheme: HTTPS
+          readinessProbe:
+            httpGet:
+              path: /
+              port: https
+              scheme: HTTPS
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: "/opt/operator/certs"
+              name: {{ include "openstack-controller.fullname" . }}-admission-tls
+              readOnly: true
+      volumes:
+        - name: {{ include "openstack-controller.fullname" . }}-admission-tls
+          secret:
+            secretName: {{ include "openstack-controller.fullname" . }}-admission-tls
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+{{- end }}

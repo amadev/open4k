@@ -1,0 +1,340 @@
+{%- set nginx_ingress_namespace_class = "openstack-ingress-nginx" %}
+artifacts:
+  images_base_url: mirantis.azurecr.io
+  binary_base_url: https://binary.mirantis.com
+
+common:
+  charts:
+    releases:
+      namespace: {{ openstack_namespace }}
+  openstack:
+    values:
+      network:
+        api:
+          ingress:
+            classes:
+              namespace: {{ nginx_ingress_namespace_class }}
+
+features:
+  services:
+    - block-storage
+    - compute
+    - dns
+    - identity
+    - dashboard
+    - image
+    - ingress
+    - database
+    - memcached
+    - networking
+    - orchestration
+    - messaging
+{%- if openstack_version not in ['queens', 'rocky'] %}
+    - placement
+{%- endif %}
+    - coordination
+    - key-manager
+    - load-balancer
+    - redis
+  glance:
+    backend: ceph
+  cinder:
+    volume:
+      backend: ceph
+    backup:
+      backend: ceph
+  neutron:
+    backend: tungstenfabric
+  database:
+    local_volumes:
+      enabled: true
+  ssl:
+    public_endpoints:
+      enabled: true
+  stacklight:
+    enabled: true
+    user:
+      username: stacklight
+services:
+  ingress:
+    ingress:
+      values:
+        deployment:
+          # NOTE(vsaienko): deploy in cluster mode to allow handle ingress'es
+          # from TF namespace
+          mode: "cluster"
+          cluster:
+            class: {{ nginx_ingress_namespace_class }}
+  database:
+    mariadb:
+      values:
+        conf:
+          database_conf:
+            mysqld:
+              wsrep_provider_options:
+                gcache.size: 1024M
+  load-balancer:
+    octavia:
+      values:
+        manifests:
+          daemonset_health_manager: false
+          deployment_worker: false
+          deployment_housekeeping: false
+          job_create_resources: false
+          secret_octavia_certs: false
+        conf:
+          octavia:
+            apiserver:
+              api_server_ip: tf-config-api.tf.svc.cluster.local
+              api_server_port: 8082
+            driver_agent:
+              enabled_provider_agents: tungstenfabric-agent
+              max_process_warning_percent: 0.75
+              provider_agent_shutdown_timeout: 60
+              stats_max_processes: 50
+              stats_request_timeout: 5
+              status_max_processes: 50
+              status_request_timeout: 5
+  dashboard:
+    horizon:
+      values:
+        network:
+          dashboard:
+            ingress:
+              classes:
+                namespace: {{ nginx_ingress_namespace_class }}
+  networking:
+    neutron:
+      values:
+        network:
+          server:
+            ingress:
+              classes:
+                namespace: {{ nginx_ingress_namespace_class }}
+  orchestration:
+    heat:
+      values:
+        network:
+          cfn:
+            ingress:
+              classes:
+                namespace: {{ nginx_ingress_namespace_class }}
+          cloudwatch:
+            ingress:
+              classes:
+                namespace: {{ nginx_ingress_namespace_class }}
+  compute:
+    nova:
+      values:
+        conf:
+          nova:
+            filter_scheduler:
+              enabled_filters:
+              - AvailabilityZoneFilter
+              - ComputeFilter
+              - ComputeCapabilitiesFilter
+              - ImagePropertiesFilter
+              - ServerGroupAntiAffinityFilter
+              - ServerGroupAffinityFilter
+              - NUMATopologyFilter
+            libvirt:
+              live_migration_use_ip_to_scp_configdrive: true
+        network:
+          api:
+            ingress:
+              classes:
+                namespace: {{ nginx_ingress_namespace_class }}
+          metadata:
+            ingress:
+              classes:
+                namespace: {{ nginx_ingress_namespace_class }}
+          osapi:
+            ingress:
+              classes:
+                namespace: {{ nginx_ingress_namespace_class }}
+          placement:
+            ingress:
+              classes:
+                namespace: {{ nginx_ingress_namespace_class }}
+          novncproxy:
+            ingress:
+              classes:
+                namespace: {{ nginx_ingress_namespace_class }}
+        bootstrap:
+          structured:
+            flavors:
+              options:
+                m1.extra_tiny_test:
+                  disk: 5
+                  name: m1.extra_tiny_test
+                  ram: 256
+                  vcpus: 1
+                m1.tiny_test:
+                  disk: 5
+                  name: m1.tiny_test
+                  ram: 512
+                  vcpus: 1
+  metric:
+    gnocchi:
+      values:
+        network:
+          api:
+            ingress:
+              classes:
+                namespace: {{ nginx_ingress_namespace_class }}
+  tempest:
+    tempest:
+      values:
+        conf:
+          # NOTE(vsaienko): disable cleanup explicitly to avoid production data loss.
+          # DANGER: do not enable this on production environment.
+          cleanup:
+            enabled: False
+          convert_to_uuid:
+            network:
+              public_network_id: public
+            compute:
+              image_ref: Cirros-5.1
+              image_ref_alt: Cirros-5.1
+              flavor_ref:  m1.extra_tiny_test
+              flavor_ref_alt: m1.tiny_test
+          blacklist:
+            - (?:tempest\.fake\.test)
+            # Skip neutron tempest plugin tests that are already contains in tempest
+            - (?:neutron_tempest_plugin.api.admin.test_agent_management)
+            - (?:neutron_tempest_plugin.api.admin.test_dhcp_agent_scheduler.DHCPAgentSchedulersTestJSON.test_add_remove_network_from_dhcp_agent)
+            - (?:neutron_tempest_plugin.api.admin.test_dhcp_agent_scheduler.DHCPAgentSchedulersTestJSON.test_list_dhcp_agent_hosting_network)
+            - (?:neutron_tempest_plugin.api.admin.test_dhcp_agent_scheduler.DHCPAgentSchedulersTestJSON.test_list_networks_hosted_by_one_dhcp)
+            - (?:neutron_tempest_plugin.api.admin.test_quotas.QuotasTest.test_quotas)
+            - (?:neutron_tempest_plugin.api.admin.test_routers_dvr)
+            - (?:neutron_tempest_plugin.api.test_dhcp_ipv6)
+            - (?:neutron_tempest_plugin.api.test_metering_extensions)
+            - (?:neutron_tempest_plugin.api.test_networks.NetworksTestJSON.test_show_network)
+            - (?:neutron_tempest_plugin.api.test_security_groups.SecGroupTest.test_create_list_update_show_delete_security_group)
+            - (?:neutron_tempest_plugin.api.test_service_type_management.ServiceTypeManagementTest.test_service_provider_list)
+            - (?:neutron_tempest_plugin.api.test_flavors_extensions.TestFlavorsIpV6TestJSON.test_list_service_profiles)
+            - (?:neutron_tempest_plugin.api.test_flavors_extensions.TestFlavorsJson.test_list_service_profiles)
+            - (?:neutron_tempest_plugin.api.test_flavors_extensions.TestFlavorsIpV6TestJSON.test_show_service_profile)
+            - (?:neutron_tempest_plugin.api.test_flavors_extensions.TestFlavorsJson.test_show_service_profile)
+            - (?:neutron_tempest_plugin.api.test_routers)
+            - (?:neutron_tempest_plugin.api.test_allowed_address_pair.AllowedAddressPairIpV6TestJSON)
+            - (?:neutron_tempest_plugin.api.test_allowed_address_pair.AllowedAddressPairTestJSON)
+            - (?:neutron_tempest_plugin.api.test_extra_dhcp_options.ExtraDHCPOptionsIpV6TestJSON)
+            - (?:neutron_tempest_plugin.api.test_extra_dhcp_options.ExtraDHCPOptionsTestJSON)
+            # Skip unsupported Tungsenfabric tests
+            # TODO(vsaienko): remove when PRODX-3721 resolved.
+            - (?:tempest.api.network.test_subnetpools_extensions.SubnetPoolsTestJSON)
+            - (?:neutron_tempest_plugin.api.test_subnetpool_prefix_ops)
+            - (?:neutron_tempest_plugin.api.test_subnetpools)
+            - (?:neutron_tempest_plugin.api.test_subnetpools_negative)
+            # TODO: remove when PRODX-4076 resolved.
+            - (?:tempest.api.network.test_networks.Networks(|IpV6)Test.test_external_network_visibility)
+            # TODO(ibumarskov): remove when PRODX-3815 (VSRx configuration) resolved.
+            - (?:tempest.api.compute.servers.test_attach_interfaces.AttachInterfacesUnderV243Test.test_add_remove_fixed_ip)
+            - (?:tempest.api.compute.servers.test_server_actions.ServerActionsTestJSON.test_reboot_server_hard)
+            - (?:tempest.scenario.test_network_basic_ops.TestNetworkBasicOps.test_network_basic_ops)
+            - (?:tempest.scenario.test_server_basic_ops.TestServerBasicOps.test_server_basic_ops)
+            # TODO(ibumarskov): not supported by TF (PRODX-4410)
+            - (?:tempest.api.network.test_networks.Networks(|IpV6)Test.test_update_subnet_gw_dns_host_routes_dhcp)
+            # TODO(ibumarskov): not supported by TF (PRODX-4417)
+            - (?:tempest.api.network.test_ports.Ports(|IpV6)TestJSON.test_create_update_port_with_second_ip)
+            # TODO(ibumarskov): functionality isn't implemented (PRODX-4419, PROD-21671)
+            - (?:tempest.api.network.test_ports.Ports(|IpV6)TestJSON.test_update_port_with_security_group_and_extra_attributes)
+            - (?:tempest.api.network.test_ports.Ports(|IpV6)TestJSON.test_update_port_with_two_security_groups_and_extra_attributes)
+            # TODO(ibumarskov): not supported by TF (PRODX-4003)
+            - (?:tempest.api.network.test_routers.RoutersIpV6Test)
+            # TODO(ibumarskov): not supported by TF (PRODX-5181)
+            - (?:neutron_tempest_plugin.scenario.test_connectivity.NetworkConnectivityTest.test_connectivity_through_2_routers)
+            # TODO(ibumarskov): not supported by TF (PRODX-4831)
+            - (?:neutron_tempest_plugin.api.admin.test_ports.PortTestCasesAdmin.test_update_mac_address)
+            # TODO(ibumarskov): not supported by TF (PRODX-5284)
+            - (?:heat_tempest_plugin.tests.functional.test_create_update_neutron_subnet.UpdateSubnetTest.test_update_gateway_ip)
+            - (?:heat_tempest_plugin.tests.functional.test_create_update_neutron_subnet.UpdateSubnetTest.test_update_gateway_ip_to_empty)
+            - (?:heat_tempest_plugin.tests.functional.test_create_update_neutron_subnet.UpdateSubnetTest.test_update_to_no_gateway_ip)
+            # TODO(ibumarskov): not supported by TF (PRODX-5188)
+            - (?:neutron_tempest_plugin.scenario.test_floatingip.DefaultSnatToExternal.test_snat_external_ip)
+            # TODO(ibumarskov): not supported by TF (PRODX-5252)
+            - (?:tempest.scenario.test_network_basic_ops.TestNetworkBasicOps.test_port_security_macspoofing_port)
+            # not supported by TF (PRODX-4801)
+            - (?:neutron_tempest_plugin.api.admin.test_floating_ips_admin_actions.FloatingIPAdminTestJSON.test_create_floatingip_with_specified_ip_address)
+            # Skip SoftwareConfigIntegrationTest because it requires a custom image
+            # https://github.com/openstack/heat/blob/stable/train/heat_integrationtests/prepare_test_env.sh
+            - (?:heat_tempest_plugin.tests.scenario.test_server_software_config.SoftwareConfigIntegrationTest)
+            # Skip patrole tempest plugin tests until PRODX-5954 will be resolved
+            - (?:patrole_tempest_plugin)
+            # AccountQuotas tests are skipped due to this is an known issue.
+            - (?:tempest.api.object_storage.test_account_quotas.AccountQuotasTest.test_upload_valid_object)
+            - (?:tempest.api.object_storage.test_account_quotas.AccountQuotasTest.test_admin_modify_quota)
+
+          script: |
+            tempest run --config-file /etc/tempest/tempest.conf -w 4 --smoke --blacklist-file  /etc/tempest/test-blacklist
+          tempest:
+            patrole:
+              custom_policy_files: /etc/tempest/policies/%s.json
+            sdn:
+              service_name: tungstenfabric
+              catalog_type: sdn
+              endpoint_type: internal
+            heat_plugin:
+              image_ref: Fedora-27-1.6
+              instance_type: m1.tiny_test
+              minimal_image_ref: Cirros-5.1
+              minimal_instance_type: m1.extra_tiny_test
+            identity:
+              ca_certificates_file: /certs/ca-bundle.pem
+            volume:
+              build_timeout: 600
+            #TODO(mshalamov): Will be removed during process of completing PRODX-1192
+            compute:
+              fixed_network_name: tempest-fixed-net
+              min_compute_nodes: 2
+              build_timeout: 600
+            #TODO(mshalamov): Will be removed during process of completing PRODX-1192
+            compute-feature-enabled:
+              cold_migration: true
+              resize: true
+            image:
+              build_timeout: 600
+            load_balancer:
+              lb_build_timeout: 1500
+            validation:
+              image_ssh_password: gocubsgo
+              image_ssh_user: cirros
+            network:
+              shared_physical_network: false
+              floating_network_name: public
+              #TODO(ibumarskov): limitation from commit of https://bugs.launchpad.net/juniperopenstack/+bug/1720118
+              project_network_cidr: 10.100.0.0/24
+              project_network_v6_cidr: 2003::/120
+              project_network_v6_mask_bits: 124
+            network-feature-enabled:
+              #TODO(ibumarskov): feature not implemented https://bugs.launchpad.net/juniperopenstack/+bug/1604568
+              ipv6_subnet_attributes: false
+            volume-feature-enabled:
+              api_v1: false
+              api_v2: false
+              api_v3: true
+              cluster_active_active: true
+            telemetry:
+              disable_ssl_certificate_validation: true
+            image-feature-enabled:
+              enabled_import_methods: 'web-download,glance-direct,copy-image'
+          tempest_logging:
+            handler_file:
+              args: ('/var/lib/tempest/data/tempest.log',)
+              class: FileHandler
+              formatter: tests
+              level: DEBUG
+            handler_stdout:
+              level: WARN
+            handlers:
+              keys: file,stdout
+            logger_root:
+              handlers: stdout,file
+              level: DEBUG
+            logger_tempest:
+              handlers: stdout,file
+              level: DEBUG
+
+        manifests:
+          job_bootstrap: true

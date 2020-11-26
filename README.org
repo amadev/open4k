@@ -1,0 +1,60 @@
+* Open4k
+
+A tool for managing OpenStack resources via Kubernetes API
+
+** Why is it needed?
+
+- With Open4k, you have a central point of management of all resources. Both Kubernetes and
+  OpenStack resources are managed with the same interface. It can be either
+  kubectl or Kubertetes Dashboard or any other available tool.
+- No extra learnig of tools for OpenStack management like OpenStack client or Heat.
+
+** Installation
+
+#+BEGIN_SRC sh
+kubectl apply -f https://raw.githubusercontent.com/amadev/open4k/master/config/install.yaml
+#+END_SRC
+
+** How to use?
+
+1. Create client configuration for the clouds you want to manage.
+
+#+BEGIN_SRC text
+apiVersion: open4k.amadev.ru/v1alpha1
+kind: Clouds
+metadata:
+  name: clouds
+spec:
+  clouds:
+    devstack:
+      project_domain_id: default
+      region_name: RegionOne
+      user_domain_name: Default
+      project_name: admin
+      identity_api_version: 3
+      interface: public
+      auth:
+        username: admin
+        password: stack
+        auth_url: http://172.18.237.203/identity
+#+END_SRC
+
+2. Create a VM.
+
+#+BEGIN_SRC text
+apiVersion: open4k.amadev.ru/v1alpha1
+kind: Instance
+metadata:
+  name: vm1
+spec:
+  reconcile: false
+  api_version: 2.43
+  cloud: devstack
+  body:
+    server:
+      name: vm1
+      imageRef : 70a599e0-31e7-49b7-b260-868f441e862b
+      flavorRef : 1
+#+END_SRC
+
+3. Profit.

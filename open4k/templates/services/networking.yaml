@@ -1,0 +1,566 @@
+#apiVersion: lcm.mirantis.com/v1alpha1
+#kind: HelmBundle
+
+{%- set service = 'neutron' %}
+{%- set components_with_dedicated_messaging = spec.get('features', {}).get('messaging', {}).get('components_with_dedicated_messaging', []) %}
+{%- set stacklight_enabled = spec.get('features', {}).get('stacklight', {}).get('enabled', False) %}
+{%- set tungstenfabric_enabled = spec.features.neutron.get('backend', 'ml2') == 'tungstenfabric' %}
+{%- set notification_topics = ['notifications'] %}
+{%- set service_plugins = ['<None>'] if tungstenfabric_enabled else ['router', 'metering', 'qos'] %}
+{%- do notification_topics.append('stacklight_notifications') if stacklight_enabled %}
+{%- set floating_network = spec.features.neutron.get('floating_network', {}) %}
+{%- set baremetal_enabled = 'baremetal' in spec.features.get('services', []) %}
+{%- set neutron_node_specific = {} %}
+{%- for label, node_features in spec.get("nodes", {}).items() %}
+  {%- if node_features.get("features", {}).get("neutron", {}) %}
+    {%- do neutron_node_specific.update({label: node_features.features.neutron}) %}
+  {%- endif %}
+{%- endfor %}
+
+spec:
+  releases:
+{%- if 'networking' in components_with_dedicated_messaging %}
+  - name: openstack-neutron-rabbitmq
+    chart: {{spec.common.infra.repo}}/rabbitmq
+    values:
+{% include 'base/_rabbitmq_images.yaml' %}
+  {%- if stacklight_enabled %}
+      monitoring:
+        prometheus:
+          enabled: true
+  {%- endif %}
+      pod:
+        replicas:
+          server: 1
+      manifests:
+        network_policy: false
+        job_users_create: true
+      volume:
+        enabled: false
+      endpoints:
+        cluster_domain_suffix: {{ spec.internal_domain_name }}
+{% include 'base/_messaging_dedicated.yaml' %}
+      conf:
+        users:
+          neutron:
+            auth:
+              service_user:
+                username: {{ credentials.messaging.user.username }}
+                password: {{ credentials.messaging.user.password }}
+            path: /neutron
+        aux_conf:
+          policies:
+          - vhost: neutron
+            name: default-policy
+            pattern: '^(?!amq\.).*'
+            definition:
+              message-ttl: 120000
+          - vhost: neutron
+            name: results_expire
+            pattern: '^results\.'
+            definition:
+              expires: 3600000
+            priority: 1
+          - vhost: neutron
+            name: tasks_expire
+            pattern: '^tasks\.'
+            definition:
+              expires: 3600000
+            priority: 1
+  {%- if stacklight_enabled %}
+        prometheus_exporter:
+          rabbit_exporters: "overview,exchange,node"
+  {%- endif %}
+{%- endif %}
+  {%- if not tungstenfabric_enabled %}
+  - name: openstack-openvswitch
+    chart: {{spec.common.infra.repo}}/openvswitch
+    values:
+      pod:
+        probes:
+          ovs_db:
+            ovs_db:
+              liveness:
+                enabled: true
+                params:
+                  initialDelaySeconds: 0
+                  failureThreshold: 3
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+              readiness:
+                enabled: true
+                params:
+                  initialDelaySeconds: 0
+                  failureThreshold: 3
+                  periodSeconds: 20
+                  timeoutSeconds: 5
+          ovs_vswitch:
+            ovs_vswitch:
+              liveness:
+                enabled: true
+                params:
+                  initialDelaySeconds: 0
+                  failureThreshold: 3
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+              readiness:
+                enabled: true
+                params:
+                  initialDelaySeconds: 0
+                  failureThreshold: 3
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+      images:
+        tags:
+{%- for image in [
+    "openvswitch_db_server",
+    "openvswitch_vswitchd",
+    "openvswitch_vswitchd_dpdk",
+    "dep_check",
+    "image_repo_sync",] %}
+        {%- if image in images %}
+          {{ image }}: {{ images[image] }}
+        {%- endif %}
+{%- endfor %}
+      endpoints:
+        cluster_domain_suffix: {{ spec.internal_domain_name }}
+  {%- endif %}
+  # NODE SPECIFIC START
+  {%- if neutron_node_specific %}
+      overrides:
+       openvswitch_openvswitch-vswitchd:
+          labels:
+    {%- for label, override in neutron_node_specific.items() %}
+      {%- if override.get("dpdk", {}).get("enabled", False) %}
+      {%- set hp_size = override.get("dpdk", {}).get("hugepages", {}).get("size", "2Mi") %}
+      {%- set hp_amount = override.get("dpdk", {}).get("hugepages", {}).get("amount", "1Gi") %}
+            {{ label }}:
+              values:
+                pod:
+                  resources:
+                    enabled: true
+                    ovs:
+                      vswitchd:
+                        limits:
+                          hugepages-{{ hp_size }}: {{ hp_amount }}
+                          memory: {{ hp_amount }}
+                conf:
+                  ovs_dpdk:
+                    enabled: true
+                    hugepages_mountpath: /dev/hugepages
+                    socket_memory: 1024
+                    vhostuser_socket_dir: vhostuser
+      {%- endif %}
+    {%- endfor %}
+  {%- endif %}
+  # NODE SPECIFIC END
+{%- if spec.get('migration', {}).get('neutron', {}).get('deploy_main_service', true) %}
+  - name: openstack-neutron
+    chart: {{spec.common.openstack.repo}}/neutron
+    values:
+      images:
+        tags:
+{%- for image in [
+    "neutron_metadata",
+    "db_drop",
+    "image_repo_sync",
+    "neutron_l2gw",
+    "neutron_bagpipe_bgp",
+    "neutron_openvswitch_agent",
+    "neutron_db_sync",
+    "db_init",
+    "neutron_dhcp",
+    "dep_check",
+    "ks_user",
+    "ks_service",
+    "neutron_linuxbridge_agent",
+    "ks_endpoints",
+    "neutron_l3",
+    "neutron_sriov_agent_init",
+    "bootstrap",
+    "neutron_ironic_agent",
+    "neutron_sriov_agent",
+    "rabbit_init",
+    "neutron_server",
+    "neutron_rpc_server",
+    "purge_test",
+    "test",] %}
+        {%- if image in images %}
+          {{ image }}: {{ images[image] }}
+        {%- endif %}
+{%- endfor %}
+      pod:
+        # NOTE(ohryhorov): use_fqdn is disabled not to use FQDN
+        # in agent hostnames
+        use_fqdn:
+          neutron_agent: false
+        probes:
+          rpc_timeout: 30
+          rpc_retries: 2
+          dhcp_agent:
+            dhcp_agent:
+              liveness:
+                enabled: true
+                params:
+                  initialDelaySeconds: 180
+                  periodSeconds: 90
+                  timeoutSeconds: 65
+          l3_agent:
+            l3_agent:
+              liveness:
+                enabled: true
+                params:
+                  initialDelaySeconds: 180
+                  periodSeconds: 90
+                  timeoutSeconds: 65
+              readiness:
+                # The probe is used to detect inital sync state
+                # it takes near 10-15 minutes to synchronize state for 100 routers
+                # wait for 15x240=3600 unless marking pod as not ready.
+                enabled: true
+                params:
+                  failureThreshold: 240
+                  initialDelaySeconds: 60
+                  periodSeconds: 15
+          ovs_agent:
+            ovs_agent:
+              liveness:
+                enabled: true
+                params:
+                  initialDelaySeconds: 180
+                  periodSeconds: 90
+                  timeoutSeconds: 65
+              readiness:
+                params:
+                  initialDelaySeconds: 30
+          metadata_agent:
+            metadata_agent:
+              liveness:
+                enabled: true
+                params:
+                  initialDelaySeconds: 180
+                  periodSeconds: 90
+                  timeoutSeconds: 65
+              readiness:
+                enabled: true
+                params:
+                  initialDelaySeconds: 10
+                  periodSeconds: 50
+                  timeoutSeconds: 40
+      {%- if baremetal_enabled %}
+        {%- set ssh_private_key = { 'defined': False } %}
+        {%- for gs_dev in spec.features.neutron.get('baremetal', {}).get('ngs', {}).get('devices', []) %}
+          {%- if gs_dev.ssh_private_key is defined %}
+            {%- do ssh_private_key.update({ 'defined': True }) %}
+            {%- break %}
+          {%- endif %}
+        {%- endfor %}
+        {%- if ssh_private_key['defined'] %}
+        mounts:
+          neutron_server:
+            neutron_server:
+              volumeMounts:
+              {%- for gs_dev in spec.features.neutron.get('baremetal', {}).get('ngs', {}).get('devices', []) %}
+                - name: ngs-ssh-private
+                  mountPath: /etc/neutron/ngs/{{ gs_dev.name }}.key
+                  subPath: {{ gs_dev.name }}_ssh_private_key
+              {%- endfor %}
+              volumes:
+                - name: ngs-ssh-private
+                  secret:
+                    secretName: ngs-ssh-keys
+                    defaultMode: 0444
+        {%- endif %}
+      {%- endif %}
+      dependencies:
+        static:
+          db_init:
+            jobs:
+              - openstack-mariadb-cluster-wait
+      endpoints:
+        cluster_domain_suffix: {{ spec.internal_domain_name }}
+{% include 'base/_admin_identity.yaml' %}
+{% include 'base/_cache.yaml' %}
+        oslo_db:
+          auth:
+            admin:
+              username: {{ admin_creds.database.username }}
+              password: {{ admin_creds.database.password }}
+            neutron:
+              username: {{ credentials.database.user.username }}
+              password: {{ credentials.database.user.password }}
+{%- if 'networking' in components_with_dedicated_messaging %}
+{% include 'base/_messaging_dedicated.yaml' %}
+{%- else %}
+{% include 'base/_messaging_shared.yaml' %}
+{%- endif %}
+{% include 'base/_notifications.yaml' %}
+        network:
+          host_fqdn_override:
+            public:
+              host: neutron.{{ spec.public_domain_name }}
+              tls:
+                ca: |
+{{ spec.features.ssl.public_endpoints.ca_cert | indent( width=18, first=True) }}
+                crt: |
+{{ spec.features.ssl.public_endpoints.api_cert | indent( width=18, first=True) }}
+                key: |
+{{ spec.features.ssl.public_endpoints.api_key | indent( width=18, first=True) }}
+          hosts:
+            admin:
+              host: neutron-server
+            default: neutron
+            internal: neutron-server
+            public:
+              host: neutron
+              tls:
+                ca: |
+{{ spec.features.ssl.public_endpoints.ca_cert | indent( width=18, first=True) }}
+                crt: |
+{{ spec.features.ssl.public_endpoints.api_cert | indent( width=18, first=True) }}
+                key: |
+{{ spec.features.ssl.public_endpoints.api_key | indent( width=18, first=True) }}
+          port:
+            api:
+              admin: 9696
+              default: 80
+              internal: 9696
+              public: 443
+          scheme:
+            default: http
+            public: https
+      manifests:
+        job_rabbit_init: false
+      {%- if baremetal_enabled %}
+        deployment_ironic_agent: true
+      {%- endif %}
+        secret_ca_bundle: true
+      {%- if tungstenfabric_enabled %}
+        daemonset_dhcp_agent: false
+        daemonset_l3_agent: false
+        daemonset_lb_agent: false
+        daemonset_metadata_agent: false
+        daemonset_ovs_agent: false
+        daemonset_sriov_agent: false
+        pod_rally_test: false
+      {%- endif %}
+      network:
+        core_plugin: {{ spec.features.neutron.get('backend', 'ml2') }}
+      {%- if spec.get('features', {}).get('neutron', {}).get('tunnel_interface') %}
+        interface:
+          tunnel: {{ spec.features.neutron.tunnel_interface }}
+      {%- endif %}
+      {%- if baremetal_enabled %}
+        backend:
+        - openvswitch
+        - baremetal
+        - genericswitch
+      {%- endif %}
+      {%- if floating_network.get('enabled', False) %}
+      bootstrap:
+        enabled: true
+        script: |
+          openstack network show {{ floating_network.get('name', 'public') }} || openstack network create \
+            {%- if not tungstenfabric_enabled %}
+            --provider-network-type flat \
+            --provider-physical-network {{ floating_network.get('physnet', 'physnet1') }} \
+            {%- endif %}
+            --external \
+            {{ floating_network.get('name', 'public') }}
+          # set default gateway via any non-master/worker node to get into ingress controller
+          openstack subnet show {{ floating_network.subnet.get('name', 'public-subnet') }} || openstack subnet create  {{ floating_network.subnet.get('name', 'public-subnet') }} \
+            --no-dhcp --subnet-range  {{ floating_network.subnet.range }} \
+            --allocation-pool start={{ floating_network.subnet.pool_start }},end={{ floating_network.subnet.pool_end }} \
+            --gateway {{ floating_network.subnet.gateway }} \
+            --network {{ floating_network.get('name', 'public') }}
+          openstack router show {{ floating_network.get('router', {}).get('name', 'r1') }} || openstack router create {{ floating_network.get('router', {}).get('name', 'r1') }}
+          openstack router set --external-gateway {{ floating_network.get('name', 'public') }} {{ floating_network.get('router', {}).get('name', 'r1') }}
+          openstack network set {{ floating_network.get('name', 'public') }} --external {% if not tungstenfabric_enabled %} --default {% endif %}
+      {%- endif %}
+      conf:
+        paste:
+          app:neutronversions:
+            paste.app_factory: neutron.pecan_wsgi.app:versions_factory
+        neutron:
+          cache:
+            backend: oslo_cache.memcache_pool
+          keystone_authtoken:
+            memcache_security_strategy: ENCRYPT
+            memcache_secret_key: {{ credentials.memcached }}
+          DEFAULT:
+            api_workers: 4
+            # Combined DVR + L3 HA is not recommended until load tested (had issues in the past)
+            {%- if spec.get('features', {}).get('neutron', {}).get('dvr', {}).get('enabled', False) %}
+            l3_ha: False
+            allow_automatic_l3agent_failover: True
+            {%- else %}
+            l3_ha: True
+            {%- endif %}
+            max_l3_agents_per_router: 3
+            l3_ha_network_type: vxlan
+            dhcp_agents_per_network: 2
+            {%- if 'dns' in spec.features.services %}
+            external_dns_driver: designate
+            # NOTE: dns_domain can be safely hardcoded because it is just prerequisite option
+            # for enabling dns integration
+            dns_domain: openstack.internal.
+            {%- endif %}
+            {%- if spec.get('features', {}).get('neutron', {}).get('dvr', {}).get('enabled', False) %}
+            router_distributed: True
+            {%- endif %}
+            {%- if spec.get('features', {}).get('neutron', {}).get('dns_servers', []) %}
+            dnsmasq_dns_servers: {{ spec.features.neutron.dns_servers |join(',') }}
+            {%- else %}
+            dnsmasq_local_resolv: true
+            {%- endif %}
+            service_plugins: {{ service_plugins|join(',') }}
+          {%- if tungstenfabric_enabled %}
+            core_plugin: neutron_plugin_contrail.plugins.opencontrail.contrail_plugin.NeutronPluginContrailCoreV2
+            api_extensions_path: 'extensions:/var/lib/openstack/lib/python3.6/site-packages/neutron_plugin_contrail/extensions'
+          quotas:
+            quota_driver: neutron_plugin_contrail.plugins.opencontrail.quota.driver.QuotaDriver
+          {%- endif %}
+          oslo_messaging_notifications:
+            topics: {{ notification_topics|join(',') }}
+        logging:
+          logger_neutron:
+            level: {{ spec.get('features', {}).get('logging', {}).get('neutron', {}).get('level', 'INFO') }}
+            propagate: 0
+        l3_agent:
+          agent:
+            extensions: fip_qos,gateway_ip_qos
+          {%- if spec.get('features', {}).get('neutron', {}).get('dvr', {}).get('enabled', False) %}
+          DEFAULT:
+            agent_mode: dvr_snat
+          {%- endif %}
+        metadata_agent:
+          DEFAULT:
+            metadata_proxy_shared_secret: {{ credentials.metadata_secret }}
+        ironic:
+          # TODO(vsaienko): figure out why specifying endpoint type via valid_interfaces or interface
+          # or endpoint_typedoes not work.
+          insecure: True
+# TODO: make other networks types configurable
+{%- set networks = {'flat': [], 'vlan': []} %}
+{%- set bridge_mappings = [] %}
+{%- set physnet_vlan_mappings = [] %}
+{%- set physnet_mtus = [] %}
+{%- for network in spec.features.neutron.external_networks %}
+    {%- for network_type in network.network_types %}
+        {%- do networks[network_type].append(network.physnet) %}
+    {%- endfor %}
+    {%- if network.get('vlan_ranges') %}
+        {%- do physnet_vlan_mappings.append(network.physnet + ':' + network.vlan_ranges) %}
+    {%- endif %}
+    {%- do bridge_mappings.append(network.physnet + ':' + network.bridge) %}
+    {%- if network.get('mtu') %}
+        {%- do physnet_mtus.append(network.physnet + ':' + network.mtu|string) %}
+    {%- endif %}
+{%- endfor %}
+        plugins:
+          ml2_conf:
+            {%- if physnet_vlan_mappings %}
+            ml2_type_vlan:
+              network_vlan_ranges: {{ ','.join(physnet_vlan_mappings) }}
+            {%- endif %}
+            ml2_type_flat:
+              flat_networks: {{ ','.join(networks.flat) }}
+            ml2:
+            {%- if physnet_mtus %}
+              physical_network_mtus: {{ physnet_mtus }}
+            {%- endif %}
+              extension_drivers:
+                - port_security
+                - qos
+              {%- if 'dns' in spec.features.services %}
+                - dns_domain_ports
+              {%- endif %}
+              tenant_network_types: {{ spec.features.neutron.get('tenant_network_types', ['vxlan'])|join(',') }}
+          {%- if baremetal_enabled %}
+            {%- for gs_dev in spec.features.neutron.get('baremetal', {}).get('ngs', {}).get('devices', []) %}
+            genericswitch:{{ gs_dev.name }}:
+              device_type: {{ gs_dev.device_type }}
+              ip: {{ gs_dev.ip }}
+              username: {{ gs_dev.username }}
+              {% if gs_dev.password is defined %}password: {{ gs_dev.password }}{% endif %}
+              {% if gs_dev.secret is defined %}password: {{ gs_dev.secret }}{% endif %}
+              {%- if gs_dev.ssh_private_key is defined %}
+              key_file: /etc/neutron/ngs/{{ gs_dev.name }}.key
+              {%- endif %}
+              {%- for key, val in  gs_dev.get('raw', {}).items() %}
+              {{ key }}: {{ val }}
+              {%- endfor %}
+            {%- endfor %}
+          {%- endif %}
+          openvswitch_agent:
+            agent:
+              # NOTE(vsaienko): change default 4789 port to do not conflict with docker swarm
+              # overlay networks.
+              vxlan_udp_port: 4790
+              tunnel_types: vxlan
+              {%- if spec.get('features', {}).get('neutron', {}).get('dvr', {}).get('enabled', False) %}
+              enable_distributed_routing: True
+              allowed_address_pair_arp_responder: True
+              {%- endif %}
+              extensions: qos
+            ovs:
+              bridge_mappings: {{ ','.join(bridge_mappings) }}
+            securitygroup:
+              # iptables security groups may lead to conflicts with k8s iptables rules on host
+              # so use openvswitch securuty groups by default
+              # (https://mirantis.jira.com/browse/PRODX-2048)
+              firewall_driver: openvswitch
+          linuxbridge_agent:
+            linux_bridge:
+              bridge_mappings: {{ ','.join(bridge_mappings) }}
+        auto_bridge_add:
+{%- for network in spec.features.neutron.external_networks %}
+          {{ network.bridge }}: {{ network.interface }}
+{%- endfor %}
+      # NODE SPECIFIC START
+      overrides:
+      {%- if spec.get('features', {}).get('neutron', {}).get('dvr', {}).get('enabled', False) %}
+        neutron_l3-agent:
+          labels:
+            openstack-compute-node::enabled:
+              values:
+                labels:
+                  agent:
+                    l3:
+                      node_selector_key: openstack-compute-node
+                      value: enabled
+                conf:
+                  l3_agent:
+                    DEFAULT:
+                      agent_mode: dvr
+      {%- endif %}
+        neutron_ovs-agent:
+          labels:
+      {%- for label, override in neutron_node_specific.items() %}
+        {%- if override.get("dpdk", {}).get("enabled", False) or override.get('tunnel_interface') %}
+            {{ label }}:
+              values:
+                {%- if override.get('tunnel_interface') %}
+                network:
+                  interface:
+                    tunnel: {{  override.tunnel_interface }}
+                {%- endif %}
+                {%- if override.get("dpdk", {}).get("enabled", False) %}
+                conf:
+                  ovs_dpdk:
+                    bonds: {{ override.dpdk.get("bonds", []) }}
+                    bridges: {{ override.dpdk.bridges }}
+                    driver: {{ override.dpdk.driver }}
+                    nics: {{ override.dpdk.get("nics", []) }}
+                    enabled: true
+                  plugins:
+                    ovs:
+                      datapath_type: netdev
+                      vhostuser_socket_dir: /var/run/openvswitch/vhostuser
+                {%- endif %}
+        {%- endif %}
+      {%- endfor %}
+      # NODE SPECIFIC END
+      jobs:
+{% include 'base/_ks_jobs.yaml' %}
+{%- endif %}

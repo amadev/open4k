@@ -1,0 +1,13 @@
+dacite
+pbr!=2.1.0,>=2.0.0 # Apache-2.0
+kopf==0.28rc3
+Jinja2>2.10
+jsonpath-rw
+deepmerge>=0.0.5
+pykube-ng>=19.9.0
+cryptography
+falcon
+jsonschema
+uwsgi
+prometheus_client
+openstacksdk
