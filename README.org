@@ -7,8 +7,9 @@ A tool for managing OpenStack resources via Kubernetes API
 - With Open4k, you have a central point of management of all resources. Both Kubernetes and
   OpenStack resources are managed with the same interface. It can be either
   kubectl or Kubertetes Dashboard or any other available tool.
-- No extra learnig of tools for OpenStack management like OpenStack client or Heat.
-- Reconcile logic for VM HA based on Kubertetes controller.
+- No extra learning tool for OpenStack management like OpenStack client or Heat.
+- Reconcile logic for VM based on Kubertetes controller.
+- Multiple clouds management.
 
 ** Installation
 

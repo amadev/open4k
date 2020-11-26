@@ -419,6 +419,13 @@ class NodeMaintenanceRequest(pykube.objects.APIObject, HelmBundleMixin):
     kopf_on_args = *version.split("/"), endpoint
 
 
+class Instance(pykube.objects.NamespacedAPIObject, HelmBundleMixin):
+    version = "open4k.amadev.ru/v1alpha1"
+    endpoint = "instances"
+    kind = "Instance"
+    kopf_on_args = *version.split("/"), endpoint
+
+
 def resource(data):
     return object_factory(api, data["apiVersion"], data["kind"])(api, data)
 

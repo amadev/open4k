@@ -20,7 +20,7 @@ import os
 import threading
 from typing import Dict, List
 
-from openstack_controller import settings
+from open4k import settings
 from kopf.engines.posting import event_queue_var
 
 

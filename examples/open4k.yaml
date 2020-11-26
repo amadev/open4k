@@ -5,7 +5,7 @@ metadata:
   name: open4k
 type: Opaque
 stringData:
-  config.yaml: |
+  clouds.yaml: |
     clouds:
       devstack:
         project_domain_id: default
@@ -17,16 +17,18 @@ stringData:
         auth:
           username: admin
           password: stack
-          auth_url: http://172.18.237.203/identity
+          auth_url: http://192.168.110.10/identity
 ---
 apiVersion: open4k.amadev.ru/v1alpha1
 kind: Instance
 metadata:
-  name: vm1
+  name: open4k-vm1
 spec:
   cloud: devstack
   body:
     server:
-      name: vm1
-      imageRef : 70a599e0-31e7-49b7-b260-868f441e862b
-      flavorRef : 1
+      name: open4k-vm1
+      imageRef : fb186de9-ef53-4fad-a944-2fabc4de0d93
+      flavorRef : "1"
+      networks:
+        - uuid: ff969274-99ea-42d4-8fdd-6e334cec2d9c

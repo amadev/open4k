@@ -1,0 +1,11 @@
+---
+apiVersion: zalando.org/v1
+kind: ClusterKopfPeering
+metadata:
+  name: open4k
+
+apiVersion: zalando.org/v1
+kind: KopfPeering
+metadata:
+  namespace: open4k
+  name: open4k.instance
