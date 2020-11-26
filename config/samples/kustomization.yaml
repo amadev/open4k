@@ -1,0 +1,4 @@
+## Append samples you want in your CSV to this file as resources ##
+resources:
+- open4k_v1alpha1_cloud.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

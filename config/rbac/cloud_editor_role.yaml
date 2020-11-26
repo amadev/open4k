@@ -1,0 +1,24 @@
+# permissions for end users to edit clouds.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cloud-editor-role
+rules:
+- apiGroups:
+  - open4k.amadev.ru
+  resources:
+  - clouds
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - open4k.amadev.ru
+  resources:
+  - clouds/status
+  verbs:
+  - get

@@ -26,6 +26,8 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	open4kv1alpha1 "github.com/amadev/open4k/api/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -37,6 +39,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
+	utilruntime.Must(open4kv1alpha1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 

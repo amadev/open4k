@@ -21,9 +21,9 @@ kubectl apply -f https://raw.githubusercontent.com/amadev/open4k/master/config/i
 
 #+BEGIN_SRC text
 apiVersion: open4k.amadev.ru/v1alpha1
-kind: Clouds
+kind: Cloud
 metadata:
-  name: clouds
+  name: cloud
 spec:
   clouds:
     devstack:

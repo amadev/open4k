@@ -2,6 +2,10 @@ domain: amadev.ru
 layout: go.kubebuilder.io/v2
 projectName: open4k
 repo: github.com/amadev/open4k
+resources:
+- group: open4k
+  kind: Cloud
+  version: v1alpha1
 version: 3-alpha
 plugins:
   go.sdk.operatorframework.io/v2-alpha: {}

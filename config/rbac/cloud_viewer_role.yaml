@@ -1,0 +1,20 @@
+# permissions for end users to view clouds.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cloud-viewer-role
+rules:
+- apiGroups:
+  - open4k.amadev.ru
+  resources:
+  - clouds
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - open4k.amadev.ru
+  resources:
+  - clouds/status
+  verbs:
+  - get
