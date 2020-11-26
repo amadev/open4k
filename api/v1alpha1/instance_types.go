@@ -29,8 +29,11 @@ type InstanceSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of Instance. Edit Instance_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	ApiVersion string       `json:"api_version,omitempty"`
+	Body       InstanceBody `json:"body,omitempty"`
 }
+
+type InstanceBody struct{}
 
 // InstanceStatus defines the observed state of Instance
 type InstanceStatus struct {

@@ -1,29 +1,30 @@
 ---
-apiVersion: open4k.amadev.ru/v1alpha1
-kind: Clouds
+apiVersion: v1
+kind: Secret
 metadata:
-  name: clouds
-spec:
-  clouds:
-    devstack:
-      project_domain_id: default
-      region_name: RegionOne
-      user_domain_name: Default
-      project_name: admin
-      identity_api_version: 3
-      interface: public
-      auth:
-        username: admin
-        password: stack
-        auth_url: http://172.18.237.203/identity
+  name: open4k
+type: Opaque
+stringData:
+  config.yaml: |
+    clouds:
+      devstack:
+        project_domain_id: default
+        region_name: RegionOne
+        user_domain_name: Default
+        project_name: admin
+        identity_api_version: 3
+        interface: public
+        auth:
+          username: admin
+          password: stack
+          auth_url: http://172.18.237.203/identity
 ---
 apiVersion: open4k.amadev.ru/v1alpha1
 kind: Instance
 metadata:
   name: vm1
 spec:
-  reconcile: false
-  api_version: 2.43
+  cloud: devstack
   body:
     server:
       name: vm1

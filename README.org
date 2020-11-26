@@ -21,23 +21,25 @@ kubectl apply -f https://raw.githubusercontent.com/amadev/open4k/master/config/i
 1. Create client configuration for the clouds you want to manage.
 
 #+BEGIN_SRC text
-apiVersion: open4k.amadev.ru/v1alpha1
-kind: Cloud
+apiVersion: v1
+kind: Secret
 metadata:
-  name: cloud
-spec:
-  clouds:
-    devstack:
-      project_domain_id: default
-      region_name: RegionOne
-      user_domain_name: Default
-      project_name: admin
-      identity_api_version: 3
-      interface: public
-      auth:
-        username: admin
-        password: stack
-        auth_url: http://172.18.237.203/identity
+  name: open4k
+type: Opaque
+stringData:
+  config.yaml: |
+    clouds:
+      devstack:
+        project_domain_id: default
+        region_name: RegionOne
+        user_domain_name: Default
+        project_name: admin
+        identity_api_version: 3
+        interface: public
+        auth:
+          username: admin
+          password: stack
+          auth_url: http://172.18.237.203/identity
 #+END_SRC
 
 2. Create a VM.
@@ -48,8 +50,6 @@ kind: Instance
 metadata:
   name: vm1
 spec:
-  reconcile: false
-  api_version: 2.43
   cloud: devstack
   body:
     server:
