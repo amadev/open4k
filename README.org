@@ -8,6 +8,7 @@ A tool for managing OpenStack resources via Kubernetes API
   OpenStack resources are managed with the same interface. It can be either
   kubectl or Kubertetes Dashboard or any other available tool.
 - No extra learnig of tools for OpenStack management like OpenStack client or Heat.
+- Reconcile logic for VM HA based on Kubertetes controller.
 
 ** Installation
 
