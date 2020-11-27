@@ -433,6 +433,20 @@ class Flavor(pykube.objects.NamespacedAPIObject, HelmBundleMixin):
     kopf_on_args = *version.split("/"), endpoint
 
 
+class Image(pykube.objects.NamespacedAPIObject, HelmBundleMixin):
+    version = "open4k.amadev.ru/v1alpha1"
+    endpoint = "images"
+    kind = "Image"
+    kopf_on_args = *version.split("/"), endpoint
+
+
+class Network(pykube.objects.NamespacedAPIObject, HelmBundleMixin):
+    version = "open4k.amadev.ru/v1alpha1"
+    endpoint = "networks"
+    kind = "Network"
+    kopf_on_args = *version.split("/"), endpoint
+
+
 def resource(data):
     return object_factory(api, data["apiVersion"], data["kind"])(api, data)
 
@@ -523,6 +537,10 @@ async def wait_for_deleted(
             return True
         await asyncio.sleep(seconds)
     return False
+
+
+def escape(name):
+    return name.replace('_', '-').lower()
 
 
 find_osdpl = functools.partial(find, OpenStackDeployment)

@@ -17,6 +17,10 @@ LOG = utils.get_logger(__name__)
 @kopf.on.resume(*kube.Flavor.kopf_on_args)
 async def flavor_change_handler(body, name, namespace, **kwargs):
     LOG.info(f"Got flavor change event {name}")
+    if body["spec"].get('managed') == False:
+        LOG.info(f"{name} is not managed")
+        return
+
     if body.get('status', {}).get("success") == True:
         LOG.info(f"{name} exists")
         return
@@ -41,6 +45,10 @@ async def flavor_change_handler(body, name, namespace, **kwargs):
 @kopf.on.delete(*kube.Flavor.kopf_on_args)
 async def flavor_delete_handler(body, name, namespace, **kwargs):
     LOG.info(f"Got flavor delete event {name}")
+    if body["spec"].get('managed') == False:
+        LOG.info(f"{name} is not managed")
+        return
+
     if not body.get('status', {}).get("success"):
         LOG.info(f"{name} was not applied successfully")
         return

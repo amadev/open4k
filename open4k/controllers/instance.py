@@ -18,8 +18,11 @@ LOG = utils.get_logger(__name__)
 @kopf.on.update(*kube.Instance.kopf_on_args)
 @kopf.on.resume(*kube.Instance.kopf_on_args)
 async def instance_change_handler(body, name, namespace, **kwargs):
-    LOG.info(f"Got instance change evenc {name}")
-    if body.get('status', {}).get("success") == True:
+    LOG.info(f"Got instance change event {name}")
+    if body["spec"].get('managed') == False:
+        LOG.info(f"{name} is not managed")
+        return
+    if body.get('status', {}).get("success"):
         LOG.info(f"{name} exists")
         return
 
@@ -41,5 +44,8 @@ async def instance_change_handler(body, name, namespace, **kwargs):
 
 
 @kopf.on.delete(*kube.Instance.kopf_on_args)
-async def node_maintenance_request_delete_handler(body, retry, **kwargs):
-    pass
+async def instance_delete_handler(body, retry, **kwargs):
+    LOG.info(f"Got instance delete {name}")
+    if body["spec"].get('managed') == False:
+        LOG.info(f"{name} is not managed")
+        return
