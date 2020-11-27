@@ -1,0 +1,24 @@
+# permissions for end users to edit networks.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: network-editor-role
+rules:
+- apiGroups:
+  - open4k.amadev.ru
+  resources:
+  - networks
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - open4k.amadev.ru
+  resources:
+  - networks/status
+  verbs:
+  - get

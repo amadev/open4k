@@ -3,4 +3,6 @@ resources:
 - open4k_v1alpha1_cloud.yaml
 - open4k_v1alpha1_instance.yaml
 - open4k_v1alpha1_flavor.yaml
+- open4k_v1alpha1_image.yaml
+- open4k_v1alpha1_network.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples
