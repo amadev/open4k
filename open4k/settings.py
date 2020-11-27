@@ -16,7 +16,6 @@ import time
 
 import json
 import kopf
-from kopf.engines.posting import event_queue_var
 from prometheus_client import start_http_server, Gauge, Counter, Summary
 
 
@@ -69,9 +68,7 @@ def json_from_env(env_name, default):
     return json.loads(data)
 
 
-OPEN4K_NAMESPACE = os.environ.get(
-    "OPEN4K_NAMESPACE", "open4k"
-)
+OPEN4K_NAMESPACE = os.environ.get("OPEN4K_NAMESPACE", "open4k")
 
 # The number of seconds to wait for all component from application becomes ready
 OSCTL_WAIT_APPLICATION_READY_TIMEOUT = int(

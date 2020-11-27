@@ -12,7 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from openstack_controller import utils
+from open4k import utils
 
 
 def test_divide_into_groups_of():

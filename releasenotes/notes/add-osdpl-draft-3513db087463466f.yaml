@@ -1,7 +1,0 @@
----
-features:
-  - |
-    Adds suport of draft mode by specifying mandatory ``spec.draft`` flag.
-upgrade:
-  - |
-    The ``spec.draft`` field is mandatory. 

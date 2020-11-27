@@ -1,6 +1,6 @@
 import pykube
 
-from openstack_controller import kube
+from open4k import kube
 
 
 def test_get_kubernetes_objects():

@@ -540,7 +540,7 @@ async def wait_for_deleted(
 
 
 def escape(name):
-    return name.replace('_', '-').lower()
+    return name.replace("_", "-").lower()
 
 
 find_osdpl = functools.partial(find, OpenStackDeployment)

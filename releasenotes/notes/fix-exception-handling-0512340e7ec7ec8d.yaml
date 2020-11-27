@@ -1,4 +1,0 @@
----
-fixes:
-  - |
-    Fixes an issue when exceptions from failed tasks were silently ignored.

@@ -1,4 +1,0 @@
----
-features:
-  - Starting Openstack Ussuri amphorav2 is used as
-    default provider driver in Octavia.
