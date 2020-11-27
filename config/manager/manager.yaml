@@ -23,17 +23,29 @@ spec:
         control-plane: controller-manager
     spec:
       containers:
-      - command:
-        - /manager
-        args:
-        - --enable-leader-election
+      - name: instance
         image: controller:latest
-        name: manager
+        command:
+          - kopf
+          - run
+          - '-n'
+          - open4k-system
+          - '-m'
+          - open4k.controllers.instance
+          - '-L'
+          - 'http://0.0.0.0:32768/healthz'
+        env:
+          - name: OPEN4K_NAMESPACE
+            value: open4k-system
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 32768
         resources:
           limits:
-            cpu: 100m
-            memory: 30Mi
+            cpu: 500m
+            memory: 300Mi
           requests:
-            cpu: 100m
-            memory: 20Mi
+            cpu: 500m
+            memory: 200Mi
       terminationGracePeriodSeconds: 10

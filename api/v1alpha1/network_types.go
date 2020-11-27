@@ -62,3 +62,6 @@ type NetworkList struct {
 func init() {
 	SchemeBuilder.Register(&Network{}, &NetworkList{})
 }
+
+// +kubebuilder:rbac:groups=open4k.amadev.ru,resources=networks,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=open4k.amadev.ru,resources=networks/status,verbs=get;update;patch

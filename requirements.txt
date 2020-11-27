@@ -11,4 +11,4 @@ jsonschema
 uwsgi
 prometheus_client
 openstacksdk
-# -e /home/amadev/p/os-sdk-light/
+os-sdk-light

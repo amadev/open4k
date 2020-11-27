@@ -65,3 +65,8 @@ type InstanceList struct {
 func init() {
 	SchemeBuilder.Register(&Instance{}, &InstanceList{})
 }
+
+// +kubebuilder:rbac:groups=open4k.amadev.ru,resources=instances,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=open4k.amadev.ru,resources=instances/status,verbs=get;update;patch
+
+// +kubebuilder:rbac:groups=,resources=secrets,verbs=get;list;watch;create;update;patch;delete

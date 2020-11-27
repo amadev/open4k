@@ -57,3 +57,6 @@ type FlavorList struct {
 func init() {
 	SchemeBuilder.Register(&Flavor{}, &FlavorList{})
 }
+
+// +kubebuilder:rbac:groups=open4k.amadev.ru,resources=flavors,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=open4k.amadev.ru,resources=flavors/status,verbs=get;update;patch

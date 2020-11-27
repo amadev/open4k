@@ -36,7 +36,7 @@ RUN set -ex; \
     dpkg-deb -x python3-distutils*.deb /; \
     rm -vf python3-distutils*.deb; \
     python3.7 /tmp/get-pip.py; \
-    pip install --no-index --no-cache --find-links /opt/wheels openstack-controller; \
+    pip install --no-index --no-cache --find-links /opt/wheels open4k; \
     cd /usr/local/lib/python3.7/dist-packages; \
     patch -p1 < /tmp/kopf-session-timeout.path; \
     cd -
@@ -44,4 +44,4 @@ RUN rm -rvf /tmp/kopf-session-timeout.path
 RUN rm -rvf /opt/wheels; \
     apt-get -q clean; \
     rm -rvf /var/lib/apt/lists/*; \
-    sh -c "echo \"LABELS:\n  IMAGE_TAG: $(pip freeze | awk -F '==' '/^openstack-controller=/ {print $2}')\" > /dockerimage_metadata"
+    sh -c "echo \"LABELS:\n  IMAGE_TAG: $(pip freeze | awk -F '==' '/^open4k=/ {print $2}')\" > /dockerimage_metadata"

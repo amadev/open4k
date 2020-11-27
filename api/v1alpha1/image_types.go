@@ -62,3 +62,6 @@ type ImageList struct {
 func init() {
 	SchemeBuilder.Register(&Image{}, &ImageList{})
 }
+
+// +kubebuilder:rbac:groups=open4k.amadev.ru,resources=images,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=open4k.amadev.ru,resources=images/status,verbs=get;update;patch

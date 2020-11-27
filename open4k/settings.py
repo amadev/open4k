@@ -185,19 +185,19 @@ METRICS = {
 }
 
 
-if OSCTL_HEARTBEAT_INTERVAL:
+# if OSCTL_HEARTBEAT_INTERVAL:
 
-    @kopf.timer(
-        "lcm.mirantis.com",
-        "v1alpha1",
-        "openstackdeployments",
-        interval=OSCTL_HEARTBEAT_INTERVAL,
-    )
-    async def heartbeat(spec, **kwargs):
-        global HEARTBEAT
-        global CURRENT_NUMBER_OF_TASKS
-        HEARTBEAT = time.time()
-        CURRENT_NUMBER_OF_TASKS = event_queue_var.get().qsize()
+#     @kopf.timer(
+#         "lcm.mirantis.com",
+#         "v1alpha1",
+#         "openstackdeployments",
+#         interval=OSCTL_HEARTBEAT_INTERVAL,
+#     )
+#     async def heartbeat(spec, **kwargs):
+#         global HEARTBEAT
+#         global CURRENT_NUMBER_OF_TASKS
+#         HEARTBEAT = time.time()
+#         CURRENT_NUMBER_OF_TASKS = event_queue_var.get().qsize()
 
 
 # Number of instances to migrate off node concurrently
