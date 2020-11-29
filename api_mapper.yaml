@@ -37,3 +37,16 @@ api:
   list: list_floatingips
   create: create_floatingip
   delete: delete_floatingip
+---
+group: open4k
+version: v1alpha1
+domain: amadev.ru
+kind: Image
+plural: images
+api:
+  service: image
+  object: images
+  get: get
+  list: list
+  create: create
+  delete: delete
