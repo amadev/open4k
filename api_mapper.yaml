@@ -1,0 +1,26 @@
+---
+group: open4k
+version: v1alpha1
+domain: amadev.ru
+kind: Flavor
+plural: flavors
+api:
+  service: compute
+  object: flavors
+  get: get_flavor
+  list: list_flavors
+  create: create_flavor
+  delete: delete_flavor
+---
+group: open4k
+version: v1alpha1
+domain: amadev.ru
+kind: SecurityGroup
+plural: securitygroups
+api:
+  service: network
+  object: securitygroups
+  get: get_securitygroup
+  list: list_securitygroups
+  create: create_securitygroup
+  delete: delete_securitygroup

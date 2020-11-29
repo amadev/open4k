@@ -10,21 +10,21 @@ from open4k import utils
 from open4k import kube
 
 LOG = utils.get_logger(__name__)
-kopf_on_args = ["open4k.amadev.ru", "v1alpha1", "flavors"]
+kopf_on_args = ["{{ group }}.{{ domain }}", "{{ version }}", "{{ plural }}"]
 
 
-class Flavor(pykube.objects.NamespacedAPIObject, kube.HelmBundleMixin):
-    version = "open4k.amadev.ru/v1alpha1"
-    endpoint = "flavors"
-    kind = "Flavor"
-    api = {'service': 'compute', 'object': 'flavors', 'get': 'get_flavor', 'list': 'list_flavors', 'create': 'create_flavor', 'delete': 'delete_flavor'}
+class {{ kind }}(pykube.objects.NamespacedAPIObject, kube.HelmBundleMixin):
+    version = "{{ group}}.{{ domain }}/{{ version }}"
+    endpoint = "{{ plural }}"
+    kind = "{{ kind }}"
+    api = {{ api }}
 
 
 @kopf.on.create(*kopf_on_args)
 @kopf.on.update(*kopf_on_args)
 @kopf.on.resume(*kopf_on_args)
-async def flavor_change_handler(body, name, namespace, **kwargs):
-    LOG.info(f"Got Flavor change event {name}")
+async def {{ kind | lower }}_change_handler(body, name, namespace, **kwargs):
+    LOG.info(f"Got {{ kind }} change event {name}")
     if body["spec"].get("managed") == False:
         LOG.info(f"{name} is not managed")
         return
@@ -38,14 +38,14 @@ async def flavor_change_handler(body, name, namespace, **kwargs):
         base64.b64decode(clouds_obj.obj["data"]["clouds.yaml"]))
     client = osl.get_client(
         cloud=body["spec"]["cloud"],
-        service="compute",
-        schema=osl.schema("compute.yaml"),
+        service="{{ api.service }}",
+        schema=osl.schema("{{ api.service }}.yaml"),
         cloud_config=clouds,
     )
-    obj = kube.find(Flavor, name, namespace=namespace)
+    obj = kube.find({{ kind }}, name, namespace=namespace)
     try:
-        created = client.flavors.create_flavor(
-            flavor=body["spec"]["body"]
+        created = client.{{ api.object }}.{{ api.create}}(
+            {{ kind | lower }}=body["spec"]["body"]
         )
         if isinstance(created, model.Model):
             created = created.marshal()
@@ -64,8 +64,8 @@ async def flavor_change_handler(body, name, namespace, **kwargs):
 
 
 @kopf.on.delete(*kopf_on_args)
-async def flavor_delete_handler(body, name, namespace, **kwargs):
-    LOG.info(f"Got Flavor delete event {name}")
+async def {{ kind | lower }}_delete_handler(body, name, namespace, **kwargs):
+    LOG.info(f"Got {{ kind }} delete event {name}")
     if body["spec"].get("managed") == False:
         LOG.info(f"{name} is not managed")
         return
@@ -84,8 +84,8 @@ async def flavor_delete_handler(body, name, namespace, **kwargs):
         base64.b64decode(clouds_obj.obj["data"]["clouds.yaml"]))
     client = osl.get_client(
         cloud=body["spec"]["cloud"],
-        service="compute",
-        schema=osl.schema("compute.yaml"),
+        service="{{ api.service }}",
+        schema=osl.schema("{{ api.service }}.yaml"),
         cloud_config=clouds,
     )
-    client.flavors.delete_flavor(flavor_id=obj_id)
+    client.{{ api.object }}.{{ api.delete }}({{ kind | lower }}_id=obj_id)

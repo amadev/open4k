@@ -5,15 +5,7 @@ from bravado_core import model
 from open4k import client
 from open4k import kube
 from open4k import settings
-
-
-ARGS = {
-    # service, resource, class, func
-    "image": ["image", "images", kube.Image, "list"],
-    "network": ["network", "networks", kube.Network, "list"],
-    "flavor": ["compute", "flavors", kube.Flavor, "list_flavors"],
-    "instance": ["compute", "instances", kube.Instance, "list"],
-}
+from open4k.controllers import RESOURCES
 
 
 def main(resources):
@@ -23,11 +15,11 @@ def main(resources):
 
 
 def import_resources(cloud, resource):
-    cl = client.get_client(settings.OPEN4K_NAMESPACE, cloud, ARGS[resource][0])
-    res = ARGS[resource][1]
-    klass = ARGS[resource][2]
-    func = ARGS[resource][3]
-    os_objs = getattr(getattr(cl, res), func)()[res]
+
+    klass = RESOURCES[resource]
+    cl = client.get_client(
+        settings.OPEN4K_NAMESPACE, cloud, klass.api['service'])
+    os_objs = getattr(getattr(cl, klass.api['object']), klass.api['list'])()[klass.api['object']]
     for os_obj in os_objs:
         data = {
             "apiVersion": klass.version,
@@ -48,7 +40,7 @@ def import_resources(cloud, resource):
 
 
 if __name__ == "__main__":
-    resources = ("image", "network", "flavor", "instance")
+    resources = RESOURCES.keys()
     if len(sys.argv) > 1:
         resources = sys.argv[1:]
     main(resources)
