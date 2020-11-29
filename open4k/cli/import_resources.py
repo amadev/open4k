@@ -19,7 +19,9 @@ def import_resources(cloud, resource):
     klass = RESOURCES[resource]
     cl = client.get_client(
         settings.OPEN4K_NAMESPACE, cloud, klass.api['service'])
-    os_objs = getattr(getattr(cl, klass.api['object']), klass.api['list'])()[klass.api['object']]
+    api_object = getattr(cl, klass.api['object'])
+    func = getattr(api_object, klass.api['list'])
+    os_objs = func()[klass.api['object']]
     for os_obj in os_objs:
         data = {
             "apiVersion": klass.version,

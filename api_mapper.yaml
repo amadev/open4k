@@ -19,8 +19,21 @@ kind: SecurityGroup
 plural: securitygroups
 api:
   service: network
-  object: securitygroups
+  object: security_groups
   get: get_securitygroup
   list: list_securitygroups
   create: create_securitygroup
   delete: delete_securitygroup
+---
+group: open4k
+version: v1alpha1
+domain: amadev.ru
+kind: FloatingIP
+plural: floatingips
+api:
+  service: network
+  object: floatingips
+  get: get_floatingips
+  list: list_floatingips
+  create: create_floatingip
+  delete: delete_floatingip

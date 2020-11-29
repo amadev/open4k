@@ -34,7 +34,7 @@ manager: generate fmt vet
 	go build -o bin/manager main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate fmt vet manifests
+run: generate fmt vet manifests update-dev
 	tox -e dev
 
 # Install CRDs into a cluster
@@ -121,3 +121,9 @@ bundle: manifests
 .PHONY: bundle-build
 bundle-build:
 	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+
+update-dev:
+	tools/update_dev_os_sdk_light.sh
+
+import-resources: generate fmt vet manifests update-dev
+	tox -e venv -- python open4k/cli/import_resources.py $(ARGS)

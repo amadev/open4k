@@ -10,21 +10,21 @@ from open4k import utils
 from open4k import kube
 
 LOG = utils.get_logger(__name__)
-kopf_on_args = ["open4k.amadev.ru", "v1alpha1", "securitygroups"]
+kopf_on_args = ["open4k.amadev.ru", "v1alpha1", "floatingips"]
 
 
-class SecurityGroup(pykube.objects.NamespacedAPIObject, kube.HelmBundleMixin):
+class FloatingIP(pykube.objects.NamespacedAPIObject, kube.HelmBundleMixin):
     version = "open4k.amadev.ru/v1alpha1"
-    endpoint = "securitygroups"
-    kind = "SecurityGroup"
-    api = {'service': 'network', 'object': 'security_groups', 'get': 'get_securitygroup', 'list': 'list_securitygroups', 'create': 'create_securitygroup', 'delete': 'delete_securitygroup'}
+    endpoint = "floatingips"
+    kind = "FloatingIP"
+    api = {'service': 'network', 'object': 'floatingips', 'get': 'get_floatingips', 'list': 'list_floatingips', 'create': 'create_floatingip', 'delete': 'delete_floatingip'}
 
 
 @kopf.on.create(*kopf_on_args)
 @kopf.on.update(*kopf_on_args)
 @kopf.on.resume(*kopf_on_args)
-async def securitygroup_change_handler(body, name, namespace, **kwargs):
-    LOG.info(f"Got SecurityGroup change event {name}")
+async def floatingip_change_handler(body, name, namespace, **kwargs):
+    LOG.info(f"Got FloatingIP change event {name}")
     if body["spec"].get("managed") == False:
         LOG.info(f"{name} is not managed")
         return
@@ -42,10 +42,10 @@ async def securitygroup_change_handler(body, name, namespace, **kwargs):
         schema=osl.schema("network.yaml"),
         cloud_config=clouds,
     )
-    obj = kube.find(SecurityGroup, name, namespace=namespace)
+    obj = kube.find(FloatingIP, name, namespace=namespace)
     try:
-        created = client.security_groups.create_securitygroup(
-            securitygroup=body["spec"]["body"]
+        created = client.floatingips.create_floatingip(
+            floatingip=body["spec"]["body"]
         )
         if isinstance(created, model.Model):
             created = created.marshal()
@@ -64,8 +64,8 @@ async def securitygroup_change_handler(body, name, namespace, **kwargs):
 
 
 @kopf.on.delete(*kopf_on_args)
-async def securitygroup_delete_handler(body, name, namespace, **kwargs):
-    LOG.info(f"Got SecurityGroup delete event {name}")
+async def floatingip_delete_handler(body, name, namespace, **kwargs):
+    LOG.info(f"Got FloatingIP delete event {name}")
     if body["spec"].get("managed") == False:
         LOG.info(f"{name} is not managed")
         return
@@ -88,4 +88,4 @@ async def securitygroup_delete_handler(body, name, namespace, **kwargs):
         schema=osl.schema("network.yaml"),
         cloud_config=clouds,
     )
-    client.security_groups.delete_securitygroup(securitygroup_id=obj_id)
+    client.floatingips.delete_floatingip(floatingip_id=obj_id)

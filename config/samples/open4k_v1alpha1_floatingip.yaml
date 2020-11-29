@@ -1,0 +1,7 @@
+apiVersion: open4k.amadev.ru/v1alpha1
+kind: FloatingIP
+metadata:
+  name: floatingip-sample
+spec:
+  # Add fields here
+  foo: bar
