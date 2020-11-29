@@ -1,18 +1,5 @@
 ---
 apiVersion: open4k.amadev.ru/v1alpha1
-kind: Flavor
-metadata:
-  name: open4k-flavor1
-spec:
-  cloud: devstack
-  body:
-    flavor:
-      name: open4k-flavor1
-      ram: 8192
-      disk: 20
-      vcpus: 4
----
-apiVersion: open4k.amadev.ru/v1alpha1
 kind: Instance
 metadata:
   name: open4k-vm1
@@ -22,7 +9,6 @@ spec:
     server:
       name: open4k-vm1
       imageRef: fb186de9-ef53-4fad-a944-2fabc4de0d93
-      flavorRef:
-        __objectRef: [Flavor, open4k-flavor1]
+      flavorRef: c1
       networks:
         - uuid: ff969274-99ea-42d4-8fdd-6e334cec2d9c

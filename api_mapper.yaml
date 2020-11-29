@@ -6,8 +6,9 @@ kind: Flavor
 plural: flavors
 api:
   service: compute
-  object: flavors
-  get: get_flavor
+  objects: flavors
+  object: flavor
+  get_: get_flavor
   list: list_flavors
   create: create_flavor
   delete: delete_flavor
@@ -19,8 +20,9 @@ kind: SecurityGroup
 plural: securitygroups
 api:
   service: network
-  object: security_groups
-  get: get_securitygroup
+  objects: security_groups
+  object: security_group
+  get_: get_securitygroup
   list: list_securitygroups
   create: create_securitygroup
   delete: delete_securitygroup
@@ -32,8 +34,9 @@ kind: FloatingIP
 plural: floatingips
 api:
   service: network
-  object: floatingips
-  get: get_floatingips
+  objects: floatingips
+  object: floatingip
+  get_: get_floatingips
   list: list_floatingips
   create: create_floatingip
   delete: delete_floatingip
@@ -45,8 +48,23 @@ kind: Image
 plural: images
 api:
   service: image
-  object: images
-  get: get
+  objects: images
+  object: image
+  get_: get
   list: list
   create: create
   delete: delete
+---
+group: open4k
+version: v1alpha1
+domain: amadev.ru
+kind: Instance
+plural: instances
+api:
+  service: compute
+  object: server
+  objects: servers
+  get_: get_server
+  list: list_servers
+  create: create_server
+  delete: delete_server

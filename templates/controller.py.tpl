@@ -8,6 +8,8 @@ import os_sdk_light as osl
 
 from open4k import utils
 from open4k import kube
+from open4k import client
+from open4k import settings
 
 LOG = utils.get_logger(__name__)
 kopf_on_args = ["{{ group }}.{{ domain }}", "{{ version }}", "{{ plural }}"]
@@ -29,27 +31,29 @@ async def {{ kind | lower }}_change_handler(body, name, namespace, **kwargs):
         LOG.info(f"{name} is not managed")
         return
 
+    c = client.get_client(
+        settings.OPEN4K_NAMESPACE, body["spec"]["cloud"], "{{ api.service }}")
+    obj = kube.find({{ kind }}, name, namespace=namespace)
+
     if body.get("status", {}).get("applied") == True:
-        LOG.info(f"{name} exists")
+        LOG.info(f"{name} exists, updating ...")
+        os_obj = getattr(getattr(c, "{{ api.objects }}"), "{{ api.get_ }}")(
+            **{'{{ api.object }}_id': body['status']['object']['id']})
+        if isinstance(os_obj, model.Model):
+            os_obj = os_obj.marshal()
+        obj.patch(
+            {"status": {"object": os_obj}},
+            subresource="status",
+        )
         return
 
-    clouds_obj = kube.find(pykube.Secret, "open4k", namespace=namespace)
-    clouds = yaml.safe_load(
-        base64.b64decode(clouds_obj.obj["data"]["clouds.yaml"]))
-    client = osl.get_client(
-        cloud=body["spec"]["cloud"],
-        service="{{ api.service }}",
-        schema=osl.schema("{{ api.service }}.yaml"),
-        cloud_config=clouds,
-    )
-    obj = kube.find({{ kind }}, name, namespace=namespace)
     try:
-        created = client.{{ api.object }}.{{ api.create}}(
-            {{ kind | lower }}=body["spec"]["body"]
+        os_obj = c.{{ api.objects }}.{{ api.create}}(
+            {{ api.object }}=body["spec"]["body"]
         )
-        if isinstance(created, model.Model):
-            created = created.marshal()
-        created = created[list(created)[0]]
+        if isinstance(os_obj, model.Model):
+            os_obj = os_obj.marshal()
+        os_obj = os_obj[list(os_obj)[0]]
 
     except Exception as e:
         obj.patch(
@@ -58,7 +62,7 @@ async def {{ kind | lower }}_change_handler(body, name, namespace, **kwargs):
         )
         raise
     obj.patch(
-        {"status": {"applied": True, "error": "", "object": created}},
+        {"status": {"applied": True, "error": "", "object": os_obj}},
         subresource="status",
     )
 
@@ -79,13 +83,6 @@ async def {{ kind | lower }}_delete_handler(body, name, namespace, **kwargs):
         LOG.info(f"Cannot get id for {name}")
         return
 
-    clouds_obj = kube.find(pykube.Secret, "open4k", namespace=namespace)
-    clouds = yaml.safe_load(
-        base64.b64decode(clouds_obj.obj["data"]["clouds.yaml"]))
-    client = osl.get_client(
-        cloud=body["spec"]["cloud"],
-        service="{{ api.service }}",
-        schema=osl.schema("{{ api.service }}.yaml"),
-        cloud_config=clouds,
-    )
-    client.{{ api.object }}.{{ api.delete }}({{ kind | lower }}_id=obj_id)
+    c = client.get_client(
+        settings.OPEN4K_NAMESPACE, body["spec"]["cloud"], "{{ api.service }}")
+    getattr(getattr(c, "{{ api.objects }}"), "{{ api.delete}}")({{ api.object }}_id=obj_id)

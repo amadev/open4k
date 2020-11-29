@@ -8,6 +8,8 @@ import os_sdk_light as osl
 
 from open4k import utils
 from open4k import kube
+from open4k import client
+from open4k import settings
 
 LOG = utils.get_logger(__name__)
 kopf_on_args = ["open4k.amadev.ru", "v1alpha1", "flavors"]
@@ -17,7 +19,7 @@ class Flavor(pykube.objects.NamespacedAPIObject, kube.HelmBundleMixin):
     version = "open4k.amadev.ru/v1alpha1"
     endpoint = "flavors"
     kind = "Flavor"
-    api = {'service': 'compute', 'object': 'flavors', 'get': 'get_flavor', 'list': 'list_flavors', 'create': 'create_flavor', 'delete': 'delete_flavor'}
+    api = {'service': 'compute', 'objects': 'flavors', 'object': 'flavor', 'get_': 'get_flavor', 'list': 'list_flavors', 'create': 'create_flavor', 'delete': 'delete_flavor'}
 
 
 @kopf.on.create(*kopf_on_args)
@@ -29,27 +31,29 @@ async def flavor_change_handler(body, name, namespace, **kwargs):
         LOG.info(f"{name} is not managed")
         return
 
+    c = client.get_client(
+        settings.OPEN4K_NAMESPACE, body["spec"]["cloud"], "compute")
+    obj = kube.find(Flavor, name, namespace=namespace)
+
     if body.get("status", {}).get("applied") == True:
-        LOG.info(f"{name} exists")
+        LOG.info(f"{name} exists, updating ...")
+        os_obj = getattr(getattr(c, "flavors"), "get_flavor")(
+            **{'flavor_id': body['status']['object']['id']})
+        if isinstance(os_obj, model.Model):
+            os_obj = os_obj.marshal()
+        obj.patch(
+            {"status": {"object": os_obj}},
+            subresource="status",
+        )
         return
 
-    clouds_obj = kube.find(pykube.Secret, "open4k", namespace=namespace)
-    clouds = yaml.safe_load(
-        base64.b64decode(clouds_obj.obj["data"]["clouds.yaml"]))
-    client = osl.get_client(
-        cloud=body["spec"]["cloud"],
-        service="compute",
-        schema=osl.schema("compute.yaml"),
-        cloud_config=clouds,
-    )
-    obj = kube.find(Flavor, name, namespace=namespace)
     try:
-        created = client.flavors.create_flavor(
+        os_obj = c.flavors.create_flavor(
             flavor=body["spec"]["body"]
         )
-        if isinstance(created, model.Model):
-            created = created.marshal()
-        created = created[list(created)[0]]
+        if isinstance(os_obj, model.Model):
+            os_obj = os_obj.marshal()
+        os_obj = os_obj[list(os_obj)[0]]
 
     except Exception as e:
         obj.patch(
@@ -58,7 +62,7 @@ async def flavor_change_handler(body, name, namespace, **kwargs):
         )
         raise
     obj.patch(
-        {"status": {"applied": True, "error": "", "object": created}},
+        {"status": {"applied": True, "error": "", "object": os_obj}},
         subresource="status",
     )
 
@@ -79,13 +83,6 @@ async def flavor_delete_handler(body, name, namespace, **kwargs):
         LOG.info(f"Cannot get id for {name}")
         return
 
-    clouds_obj = kube.find(pykube.Secret, "open4k", namespace=namespace)
-    clouds = yaml.safe_load(
-        base64.b64decode(clouds_obj.obj["data"]["clouds.yaml"]))
-    client = osl.get_client(
-        cloud=body["spec"]["cloud"],
-        service="compute",
-        schema=osl.schema("compute.yaml"),
-        cloud_config=clouds,
-    )
-    client.flavors.delete_flavor(flavor_id=obj_id)
+    c = client.get_client(
+        settings.OPEN4K_NAMESPACE, body["spec"]["cloud"], "compute")
+    getattr(getattr(c, "flavors"), "delete_flavor")(flavor_id=obj_id)
