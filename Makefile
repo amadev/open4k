@@ -35,7 +35,7 @@ manager: generate fmt vet
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet manifests
-	go run ./main.go
+	tox -e dev
 
 # Install CRDs into a cluster
 install: manifests kustomize
@@ -74,9 +74,12 @@ docker-build: test
 docker-push:
 	docker push ${IMG}
 
+api-mapper:
+	tox -e venv -- python tools/api_mapper.py
+
 # find or download controller-gen
 # download controller-gen if necessary
-controller-gen:
+controller-gen: api-mapper
 ifeq (, $(shell which controller-gen))
 	@{ \
 	set -e ;\

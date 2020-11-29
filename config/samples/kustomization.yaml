@@ -5,4 +5,5 @@ resources:
 - open4k_v1alpha1_flavor.yaml
 - open4k_v1alpha1_image.yaml
 - open4k_v1alpha1_network.yaml
+- open4k_v1alpha1_securitygroup.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

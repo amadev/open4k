@@ -96,3 +96,23 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - open4k.amadev.ru
+  resources:
+  - securitygroups
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - open4k.amadev.ru
+  resources:
+  - securitygroups/status
+  verbs:
+  - get
+  - patch
+  - update
