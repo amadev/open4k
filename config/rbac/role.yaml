@@ -6,7 +6,9 @@ metadata:
   creationTimestamp: null
   name: manager-role
 rules:
-- resources:
+- apiGroups:
+  - ""
+  resources:
   - secrets
   verbs:
   - create
@@ -32,6 +34,26 @@ rules:
   - open4k.amadev.ru
   resources:
   - flavors/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - open4k.amadev.ru
+  resources:
+  - floatingips
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - open4k.amadev.ru
+  resources:
+  - floatingips/status
   verbs:
   - get
   - patch

@@ -62,3 +62,6 @@ type FloatingIPList struct {
 func init() {
 	SchemeBuilder.Register(&FloatingIP{}, &FloatingIPList{})
 }
+
+// +kubebuilder:rbac:groups=open4k.amadev.ru,resources=floatingips,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=open4k.amadev.ru,resources=floatingips/status,verbs=get;update;patch
