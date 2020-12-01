@@ -15,7 +15,6 @@ def main(resources):
 
 
 def import_resources(cloud, resource):
-
     klass = RESOURCES[resource]
     cl = client.get_client(
         settings.OPEN4K_NAMESPACE, cloud, klass.api['service'])
@@ -23,22 +22,29 @@ def import_resources(cloud, resource):
     func = getattr(api_object, klass.api['list'])
     os_objs = func()[klass.api['objects']]
     for os_obj in os_objs:
+        name = kube.escape(f'{cloud}-{os_obj["name"]}')
         data = {
             "apiVersion": klass.version,
             "kind": klass.kind,
             "metadata": {
-                "name": kube.escape(f'{cloud}-{os_obj["name"]}'),
+                "name": name,
                 "namespace": settings.OPEN4K_NAMESPACE,
             },
             "spec": {"managed": False, "cloud": cloud},
         }
         if isinstance(os_obj, model.Model):
             os_obj = os_obj.marshal()
-        status = {"status": {"success": True, "object": os_obj}}
         obj = klass(kube.api, data)
         if not obj.exists():
             obj.create()
+            status = {"status": {"applied": True, "object": os_obj}}
             obj.patch(status, subresource="status")
+            op = 'created'
+        else:
+            status = {"status": {"object": os_obj}}
+            obj.patch(status, subresource="status")
+            op = 'updated'
+        print(f"{klass.kind} {name}: {op}")
 
 
 if __name__ == "__main__":
