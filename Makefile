@@ -23,7 +23,7 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-all: manager
+all: generate-no-api-mapper manifests
 
 # Run tests
 test: generate fmt vet manifests
@@ -63,7 +63,10 @@ vet:
 	go vet ./...
 
 # Generate code
-generate: controller-gen
+generate: controller-gen api-mapper
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+
+generate-no-api-mapper: controller-gen
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 # Build the docker image
@@ -74,12 +77,9 @@ docker-build: test
 docker-push:
 	docker push ${IMG}
 
-api-mapper:
-	tox -e venv -- python tools/api_mapper.py
-
 # find or download controller-gen
 # download controller-gen if necessary
-controller-gen: api-mapper
+controller-gen:
 ifeq (, $(shell which controller-gen))
 	@{ \
 	set -e ;\
@@ -121,6 +121,9 @@ bundle: manifests
 .PHONY: bundle-build
 bundle-build:
 	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+
+api-mapper:
+	tox -e venv -- python tools/api_mapper.py
 
 update-dev:
 	tools/update_dev_os_sdk_light.sh
