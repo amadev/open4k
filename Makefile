@@ -57,6 +57,7 @@ manifests: controller-gen
 # Run go fmt against code
 fmt:
 	go fmt ./...
+	tox -e black
 
 # Run go vet against code
 vet:

@@ -1,10 +1,7 @@
-import base64
 import kopf
 import pykube
-import yaml
 
 from bravado_core import model
-import os_sdk_light as osl
 
 from open4k import utils
 from open4k import kube
@@ -19,7 +16,15 @@ class SecurityGroup(pykube.objects.NamespacedAPIObject, kube.HelmBundleMixin):
     version = "open4k.amadev.ru/v1alpha1"
     endpoint = "securitygroups"
     kind = "SecurityGroup"
-    api = {'service': 'network', 'objects': 'security_groups', 'object': 'security_group', 'get_': 'get_securitygroup', 'list': 'list_securitygroups', 'create': 'create_securitygroup', 'delete': 'delete_securitygroup'}
+    api = {
+        "service": "network",
+        "objects": "security_groups",
+        "object": "security_group",
+        "get_": "get_securitygroup",
+        "list": "list_securitygroups",
+        "create": "create_securitygroup",
+        "delete": "delete_securitygroup",
+    }
 
 
 @kopf.on.create(*kopf_on_args)
@@ -32,13 +37,15 @@ async def securitygroup_change_handler(body, name, namespace, **kwargs):
         return
 
     c = client.get_client(
-        settings.OPEN4K_NAMESPACE, body["spec"]["cloud"], "network")
+        settings.OPEN4K_NAMESPACE, body["spec"]["cloud"], "network"
+    )
     obj = kube.find(SecurityGroup, name, namespace=namespace)
 
     if body.get("status", {}).get("applied") == True:
         LOG.info(f"{name} exists, updating ...")
         os_obj = getattr(getattr(c, "security_groups"), "get_securitygroup")(
-            **{'security_group_id': body['status']['object']['id']})
+            **{"security_group_id": body["status"]["object"]["id"]}
+        )
         if isinstance(os_obj, model.Model):
             os_obj = os_obj.marshal()
         obj.patch(
@@ -84,5 +91,8 @@ async def securitygroup_delete_handler(body, name, namespace, **kwargs):
         return
 
     c = client.get_client(
-        settings.OPEN4K_NAMESPACE, body["spec"]["cloud"], "network")
-    getattr(getattr(c, "security_groups"), "delete_securitygroup")(security_group_id=obj_id)
+        settings.OPEN4K_NAMESPACE, body["spec"]["cloud"], "network"
+    )
+    getattr(getattr(c, "security_groups"), "delete_securitygroup")(
+        security_group_id=obj_id
+    )

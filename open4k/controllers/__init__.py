@@ -1,4 +1,3 @@
-
 from . import flavor
 
 from . import securitygroup
@@ -15,14 +14,14 @@ from . import port
 RESOURCES = {}
 
 
-RESOURCES['flavor'] = flavor.Flavor
+RESOURCES["flavor"] = flavor.Flavor
 
-RESOURCES['securitygroup'] = securitygroup.SecurityGroup
+RESOURCES["securitygroup"] = securitygroup.SecurityGroup
 
-RESOURCES['floatingip'] = floatingip.FloatingIP
+RESOURCES["floatingip"] = floatingip.FloatingIP
 
-RESOURCES['image'] = image.Image
+RESOURCES["image"] = image.Image
 
-RESOURCES['instance'] = instance.Instance
+RESOURCES["instance"] = instance.Instance
 
-RESOURCES['port'] = port.Port
+RESOURCES["port"] = port.Port

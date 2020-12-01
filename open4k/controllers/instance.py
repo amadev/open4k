@@ -1,10 +1,7 @@
-import base64
 import kopf
 import pykube
-import yaml
 
 from bravado_core import model
-import os_sdk_light as osl
 
 from open4k import utils
 from open4k import kube
@@ -19,7 +16,15 @@ class Instance(pykube.objects.NamespacedAPIObject, kube.HelmBundleMixin):
     version = "open4k.amadev.ru/v1alpha1"
     endpoint = "instances"
     kind = "Instance"
-    api = {'service': 'compute', 'object': 'server', 'objects': 'servers', 'get_': 'get_server', 'list': 'list_servers', 'create': 'create_server', 'delete': 'delete_server'}
+    api = {
+        "service": "compute",
+        "object": "server",
+        "objects": "servers",
+        "get_": "get_server",
+        "list": "list_servers",
+        "create": "create_server",
+        "delete": "delete_server",
+    }
 
 
 @kopf.on.create(*kopf_on_args)
@@ -32,13 +37,15 @@ async def instance_change_handler(body, name, namespace, **kwargs):
         return
 
     c = client.get_client(
-        settings.OPEN4K_NAMESPACE, body["spec"]["cloud"], "compute")
+        settings.OPEN4K_NAMESPACE, body["spec"]["cloud"], "compute"
+    )
     obj = kube.find(Instance, name, namespace=namespace)
 
     if body.get("status", {}).get("applied") == True:
         LOG.info(f"{name} exists, updating ...")
         os_obj = getattr(getattr(c, "servers"), "get_server")(
-            **{'server_id': body['status']['object']['id']})
+            **{"server_id": body["status"]["object"]["id"]}
+        )
         if isinstance(os_obj, model.Model):
             os_obj = os_obj.marshal()
         obj.patch(
@@ -48,9 +55,7 @@ async def instance_change_handler(body, name, namespace, **kwargs):
         return
 
     try:
-        os_obj = c.servers.create_server(
-            server=body["spec"]["body"]
-        )
+        os_obj = c.servers.create_server(server=body["spec"]["body"])
         if isinstance(os_obj, model.Model):
             os_obj = os_obj.marshal()
         os_obj = os_obj[list(os_obj)[0]]
@@ -84,5 +89,6 @@ async def instance_delete_handler(body, name, namespace, **kwargs):
         return
 
     c = client.get_client(
-        settings.OPEN4K_NAMESPACE, body["spec"]["cloud"], "compute")
+        settings.OPEN4K_NAMESPACE, body["spec"]["cloud"], "compute"
+    )
     getattr(getattr(c, "servers"), "delete_server")(server_id=obj_id)

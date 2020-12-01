@@ -17,15 +17,16 @@ def main(resources):
 def import_resources(cloud, resource):
     klass = RESOURCES[resource]
     cl = client.get_client(
-        settings.OPEN4K_NAMESPACE, cloud, klass.api['service'])
-    api_object = getattr(cl, klass.api['objects'])
-    func = getattr(api_object, klass.api['list'])
-    os_objs = func()[klass.api['objects']]
+        settings.OPEN4K_NAMESPACE, cloud, klass.api["service"]
+    )
+    api_object = getattr(cl, klass.api["objects"])
+    func = getattr(api_object, klass.api["list"])
+    os_objs = func()[klass.api["objects"]]
     for os_obj in os_objs:
         part = os_obj["name"]
         if not part:
             part = os_obj["id"]
-        name = kube.escape(f'{cloud}-{part}')
+        name = kube.escape(f"{cloud}-{part}")
         data = {
             "apiVersion": klass.version,
             "kind": klass.kind,
@@ -42,11 +43,11 @@ def import_resources(cloud, resource):
             obj.create()
             status = {"status": {"applied": True, "object": os_obj}}
             obj.patch(status, subresource="status")
-            op = 'created'
+            op = "created"
         else:
             status = {"status": {"object": os_obj}}
             obj.patch(status, subresource="status")
-            op = 'updated'
+            op = "updated"
         print(f"{klass.kind} {name}: {op}")
 
 

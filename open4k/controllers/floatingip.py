@@ -1,10 +1,7 @@
-import base64
 import kopf
 import pykube
-import yaml
 
 from bravado_core import model
-import os_sdk_light as osl
 
 from open4k import utils
 from open4k import kube
@@ -19,7 +16,15 @@ class FloatingIP(pykube.objects.NamespacedAPIObject, kube.HelmBundleMixin):
     version = "open4k.amadev.ru/v1alpha1"
     endpoint = "floatingips"
     kind = "FloatingIP"
-    api = {'service': 'network', 'objects': 'floatingips', 'object': 'floatingip', 'get_': 'get_floatingips', 'list': 'list_floatingips', 'create': 'create_floatingip', 'delete': 'delete_floatingip'}
+    api = {
+        "service": "network",
+        "objects": "floatingips",
+        "object": "floatingip",
+        "get_": "get_floatingips",
+        "list": "list_floatingips",
+        "create": "create_floatingip",
+        "delete": "delete_floatingip",
+    }
 
 
 @kopf.on.create(*kopf_on_args)
@@ -32,13 +37,15 @@ async def floatingip_change_handler(body, name, namespace, **kwargs):
         return
 
     c = client.get_client(
-        settings.OPEN4K_NAMESPACE, body["spec"]["cloud"], "network")
+        settings.OPEN4K_NAMESPACE, body["spec"]["cloud"], "network"
+    )
     obj = kube.find(FloatingIP, name, namespace=namespace)
 
     if body.get("status", {}).get("applied") == True:
         LOG.info(f"{name} exists, updating ...")
         os_obj = getattr(getattr(c, "floatingips"), "get_floatingips")(
-            **{'floatingip_id': body['status']['object']['id']})
+            **{"floatingip_id": body["status"]["object"]["id"]}
+        )
         if isinstance(os_obj, model.Model):
             os_obj = os_obj.marshal()
         obj.patch(
@@ -84,5 +91,8 @@ async def floatingip_delete_handler(body, name, namespace, **kwargs):
         return
 
     c = client.get_client(
-        settings.OPEN4K_NAMESPACE, body["spec"]["cloud"], "network")
-    getattr(getattr(c, "floatingips"), "delete_floatingip")(floatingip_id=obj_id)
+        settings.OPEN4K_NAMESPACE, body["spec"]["cloud"], "network"
+    )
+    getattr(getattr(c, "floatingips"), "delete_floatingip")(
+        floatingip_id=obj_id
+    )

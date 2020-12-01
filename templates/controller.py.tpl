@@ -1,10 +1,7 @@
-import base64
 import kopf
 import pykube
-import yaml
 
 from bravado_core import model
-import os_sdk_light as osl
 
 from open4k import utils
 from open4k import kube

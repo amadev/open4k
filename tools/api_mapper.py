@@ -3,7 +3,6 @@ import jinja2
 import yaml
 import subprocess
 
-
 ENV = jinja2.Environment(
     loader=jinja2.FileSystemLoader("templates"),
     extensions=["jinja2.ext.do", "jinja2.ext.loopcontrols"],
@@ -37,7 +36,9 @@ def main():
     for doc in docs:
         create_go_crd(doc)
         create_controller(doc)
-
+        cmd = 'make fmt'
+        cmd = cmd.split()
+        subprocess.check_call(cmd)
 
 
 if __name__ == '__main__':
