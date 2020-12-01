@@ -16,34 +16,6 @@ api:
 group: open4k
 version: v1alpha1
 domain: amadev.ru
-kind: SecurityGroup
-plural: securitygroups
-api:
-  service: network
-  objects: security_groups
-  object: security_group
-  get_: get_securitygroup
-  list: list_securitygroups
-  create: create_securitygroup
-  delete: delete_securitygroup
----
-group: open4k
-version: v1alpha1
-domain: amadev.ru
-kind: FloatingIP
-plural: floatingips
-api:
-  service: network
-  objects: floatingips
-  object: floatingip
-  get_: get_floatingips
-  list: list_floatingips
-  create: create_floatingip
-  delete: delete_floatingip
----
-group: open4k
-version: v1alpha1
-domain: amadev.ru
 kind: Image
 plural: images
 api:
@@ -58,6 +30,34 @@ api:
 group: open4k
 version: v1alpha1
 domain: amadev.ru
+kind: Network
+plural: networks
+api:
+  service: network
+  objects: networks
+  object: network
+  get_: get
+  list: list
+  create: create
+  delete: delete
+---
+group: open4k
+version: v1alpha1
+domain: amadev.ru
+kind: SecurityGroup
+plural: securitygroups
+api:
+  service: network
+  objects: security_groups
+  object: security_group
+  get_: get_securitygroup
+  list: list_securitygroups
+  create: create_securitygroup
+  delete: delete_securitygroup
+---
+group: open4k
+version: v1alpha1
+domain: amadev.ru
 kind: Instance
 plural: instances
 api:
@@ -68,6 +68,20 @@ api:
   list: list_servers
   create: create_server
   delete: delete_server
+---
+group: open4k
+version: v1alpha1
+domain: amadev.ru
+kind: FloatingIP
+plural: floatingips
+api:
+  service: network
+  objects: floatingips
+  object: floatingip
+  get_: get_floatingips
+  list: list_floatingips
+  create: create_floatingip
+  delete: delete_floatingip
 ---
 group: open4k
 version: v1alpha1
