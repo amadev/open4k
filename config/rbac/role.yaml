@@ -99,6 +99,26 @@ rules:
 - apiGroups:
   - open4k.amadev.ru
   resources:
+  - ports
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - open4k.amadev.ru
+  resources:
+  - ports/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - open4k.amadev.ru
+  resources:
   - securitygroups
   verbs:
   - create

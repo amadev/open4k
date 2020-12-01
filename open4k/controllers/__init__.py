@@ -9,6 +9,8 @@ from . import image
 
 from . import instance
 
+from . import port
+
 
 RESOURCES = {}
 
@@ -22,3 +24,5 @@ RESOURCES['floatingip'] = floatingip.FloatingIP
 RESOURCES['image'] = image.Image
 
 RESOURCES['instance'] = instance.Instance
+
+RESOURCES['port'] = port.Port

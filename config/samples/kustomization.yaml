@@ -6,4 +6,5 @@ resources:
 - open4k_v1alpha1_image.yaml
 - open4k_v1alpha1_network.yaml
 - open4k_v1alpha1_securitygroup.yaml
+- open4k_v1alpha1_port.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

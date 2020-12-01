@@ -129,4 +129,4 @@ update-dev:
 	tools/update_dev_os_sdk_light.sh
 
 import-resources: generate fmt vet manifests update-dev
-	tox -e venv -- python open4k/cli/import_resources.py $(ARGS)
+	PYTHONWARNINGS="ignore:Unverified HTTPS request" tox -e venv -- python open4k/cli/import_resources.py $(ARGS)

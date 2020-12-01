@@ -21,6 +21,9 @@ resources:
 - group: open4k
   kind: SecurityGroup
   version: v1alpha1
+- group: open4k
+  kind: Port
+  version: v1alpha1
 version: 3-alpha
 plugins:
   go.sdk.operatorframework.io/v2-alpha: {}

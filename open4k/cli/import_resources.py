@@ -22,7 +22,10 @@ def import_resources(cloud, resource):
     func = getattr(api_object, klass.api['list'])
     os_objs = func()[klass.api['objects']]
     for os_obj in os_objs:
-        name = kube.escape(f'{cloud}-{os_obj["name"]}')
+        part = os_obj["name"]
+        if not part:
+            part = os_obj["id"]
+        name = kube.escape(f'{cloud}-{part}')
         data = {
             "apiVersion": klass.version,
             "kind": klass.kind,

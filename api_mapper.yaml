@@ -68,3 +68,17 @@ api:
   list: list_servers
   create: create_server
   delete: delete_server
+---
+group: open4k
+version: v1alpha1
+domain: amadev.ru
+kind: Port
+plural: ports
+api:
+  service: network
+  object: port
+  objects: ports
+  get_: get_port
+  list: list_ports
+  create: create_port
+  delete: delete_port
