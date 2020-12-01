@@ -21,21 +21,19 @@ COPY --from=builder /opt/operator/uwsgi.ini /opt/operator/uwsgi.ini
 ADD kopf-session-timeout.path /tmp/kopf-session-timeout.path
 # NOTE(pas-ha) apt-get download + dpkg-deb -x is a dirty hack
 # to fetch distutils w/o pulling in most of python3.6
-# FIXME(pas-ha) strace/gdb is installed only temporary for now for debugging
 RUN set -ex; \
     apt-get -q update; \
     apt-get install -q -y --no-install-recommends --no-upgrade \
         python3.7 \
         python3.7-dbg \
         libpython3.7 \
-        gdb \
         patch \
-        strace \
         ca-certificates; \
     apt-get download python3-distutils; \
     dpkg-deb -x python3-distutils*.deb /; \
     rm -vf python3-distutils*.deb; \
     python3.7 /tmp/get-pip.py; \
+    pip install strict-rfc3339 rfc3987 webcolors; \
     pip install --no-index --no-cache --find-links /opt/wheels open4k; \
     cd /usr/local/lib/python3.7/dist-packages; \
     patch -p1 < /tmp/kopf-session-timeout.path; \
