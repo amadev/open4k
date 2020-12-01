@@ -9,7 +9,10 @@ from open4k import settings
 from open4k.controllers import RESOURCES
 
 
-def main(resources):
+def main():
+    resources = RESOURCES.keys()
+    if len(sys.argv) > 1:
+        resources = sys.argv[1:]
     for cloud in client.get_clouds(settings.OPEN4K_NAMESPACE)["clouds"]:
         for resource in resources:
             import_resources(cloud, resource)
@@ -54,7 +57,4 @@ def import_resources(cloud, resource):
 
 
 if __name__ == "__main__":
-    resources = RESOURCES.keys()
-    if len(sys.argv) > 1:
-        resources = sys.argv[1:]
-    main(resources)
+    main()
