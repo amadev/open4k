@@ -13,6 +13,7 @@ def get_client(namespace, cloud, service):
         service=service,
         schema=osl.schema(f"{service}.yaml"),
         cloud_config=clouds,
+        config={"use_models": False},
     )
     return client
 

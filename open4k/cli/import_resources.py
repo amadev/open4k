@@ -1,3 +1,4 @@
+import time
 import sys
 
 from bravado_core import model
@@ -23,7 +24,7 @@ def import_resources(cloud, resource):
     func = getattr(api_object, klass.api["list"])
     os_objs = func()[klass.api["objects"]]
     for os_obj in os_objs:
-        part = os_obj["name"]
+        part = os_obj.get("name")
         if not part:
             part = os_obj["id"]
         name = kube.escape(f"{cloud}-{part}")
@@ -39,6 +40,7 @@ def import_resources(cloud, resource):
         if isinstance(os_obj, model.Model):
             os_obj = os_obj.marshal()
         obj = klass(kube.api, data)
+        start = time.time()
         if not obj.exists():
             obj.create()
             status = {"status": {"applied": True, "object": os_obj}}
@@ -48,7 +50,7 @@ def import_resources(cloud, resource):
             status = {"status": {"object": os_obj}}
             obj.patch(status, subresource="status")
             op = "updated"
-        print(f"{klass.kind} {name}: {op}")
+        print(f"{klass.kind} {name}: {op}", time.time() - start)
 
 
 if __name__ == "__main__":

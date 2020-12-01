@@ -36,9 +36,9 @@ def main():
     for doc in docs:
         create_go_crd(doc)
         create_controller(doc)
-        cmd = 'make fmt'
-        cmd = cmd.split()
-        subprocess.check_call(cmd)
+    cmd = 'make fmt'
+    cmd = cmd.split()
+    subprocess.check_call(cmd)
 
 
 if __name__ == '__main__':

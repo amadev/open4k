@@ -42,10 +42,7 @@ spec:
             path: /healthz
             port: 32768
         resources:
-          limits:
-            cpu: 500m
-            memory: 300Mi
           requests:
-            cpu: 500m
-            memory: 200Mi
+            cpu: 1000m
+            memory: 1000Mi
       terminationGracePeriodSeconds: 10

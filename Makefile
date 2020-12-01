@@ -124,10 +124,10 @@ bundle-build:
 	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
 
 api-mapper:
-	tox -e venv -- python tools/api_mapper.py
+	.tox/dev/bin/python tools/api_mapper.py
 
 update-dev:
 	tools/update_dev_os_sdk_light.sh
 
-import-resources: generate fmt vet manifests update-dev
-	PYTHONWARNINGS="ignore:Unverified HTTPS request" tox -e venv -- python open4k/cli/import_resources.py $(ARGS)
+import-resources: generate manifests update-dev
+	PYTHONWARNINGS="ignore:Unverified HTTPS request" time .tox/dev/bin/python open4k/cli/import_resources.py $(ARGS)
