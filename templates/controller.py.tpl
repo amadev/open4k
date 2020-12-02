@@ -1,12 +1,11 @@
 import kopf
 import pykube
 
-from bravado_core import model
-
 from open4k import utils
 from open4k import kube
 from open4k import client
 from open4k import settings
+from open4k import hooks
 
 LOG = utils.get_logger(__name__)
 kopf_on_args = ["{{ group }}.{{ domain }}", "{{ version }}", "{{ plural }}"]
@@ -36,8 +35,7 @@ async def {{ kind | lower }}_change_handler(body, name, namespace, **kwargs):
         LOG.info(f"{name} exists, updating ...")
         os_obj = getattr(getattr(c, "{{ api.objects }}"), "{{ api.get_ }}")(
             **{'{{ api.object }}_id': body['status']['object']['id']})
-        if isinstance(os_obj, model.Model):
-            os_obj = os_obj.marshal()
+        os_obj = os_obj[list(os_obj)[0]]
         obj.patch(
             {"status": {"object": os_obj}},
             subresource="status",
@@ -48,8 +46,6 @@ async def {{ kind | lower }}_change_handler(body, name, namespace, **kwargs):
         os_obj = c.{{ api.objects }}.{{ api.create}}(
             {{ api.object }}=body["spec"]["body"]
         )
-        if isinstance(os_obj, model.Model):
-            os_obj = os_obj.marshal()
         os_obj = os_obj[list(os_obj)[0]]
 
     except Exception as e:
@@ -62,6 +58,8 @@ async def {{ kind | lower }}_change_handler(body, name, namespace, **kwargs):
         {"status": {"applied": True, "error": "", "object": os_obj}},
         subresource="status",
     )
+    await hooks.call("{{ kind | lower }}", "post_create", {{ api }},
+                     body["spec"]["cloud"], obj, os_obj)
 
 
 @kopf.on.delete(*kopf_on_args)

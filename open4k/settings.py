@@ -68,7 +68,7 @@ def json_from_env(env_name, default):
     return json.loads(data)
 
 
-OPEN4K_NAMESPACE = os.environ.get("OPEN4K_NAMESPACE", "open4k-system")
+OPEN4K_NAMESPACE = os.environ.get("OPEN4K_NAMESPACE", "open4k-devstack-system")
 
 # The number of seconds to wait for all component from application becomes ready
 OSCTL_WAIT_APPLICATION_READY_TIMEOUT = int(

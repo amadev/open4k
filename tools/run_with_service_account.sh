@@ -104,4 +104,4 @@ available_controllers=(
 
 controllers="${available_controllers[*]}"
 
-kopf run --dev -n open4k-system --liveness=http://:8090/healthz $controllers
+kopf run --dev -n open4k-devstack-system --liveness=http://:8090/healthz $controllers

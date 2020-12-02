@@ -1,12 +1,9 @@
-import time
 import sys
 
-from bravado_core import model
-
 from open4k import client
-from open4k import kube
 from open4k import settings
 from open4k.controllers import RESOURCES
+from open4k import resource as rlib
 
 
 def main():
@@ -15,45 +12,7 @@ def main():
         resources = sys.argv[1:]
     for cloud in client.get_clouds(settings.OPEN4K_NAMESPACE)["clouds"]:
         for resource in resources:
-            import_resources(cloud, resource)
-
-
-def import_resources(cloud, resource):
-    klass = RESOURCES[resource]
-    cl = client.get_client(
-        settings.OPEN4K_NAMESPACE, cloud, klass.api["service"]
-    )
-    api_object = getattr(cl, klass.api["objects"])
-    func = getattr(api_object, klass.api["list"])
-    os_objs = func()[klass.api["objects"]]
-    for os_obj in os_objs:
-        part = os_obj.get("name")
-        if not part:
-            part = os_obj["id"]
-        name = kube.escape(f"{cloud}-{part}")
-        data = {
-            "apiVersion": klass.version,
-            "kind": klass.kind,
-            "metadata": {
-                "name": name,
-                "namespace": settings.OPEN4K_NAMESPACE,
-            },
-            "spec": {"managed": False, "cloud": cloud},
-        }
-        if isinstance(os_obj, model.Model):
-            os_obj = os_obj.marshal()
-        obj = klass(kube.api, data)
-        start = time.time()
-        if not obj.exists():
-            obj.create()
-            status = {"status": {"applied": True, "object": os_obj}}
-            obj.patch(status, subresource="status")
-            op = "created"
-        else:
-            status = {"status": {"object": os_obj}}
-            obj.patch(status, subresource="status")
-            op = "updated"
-        print(f"{klass.kind} {name}: {op}", time.time() - start)
+            rlib.import_resources(cloud, resource)
 
 
 if __name__ == "__main__":

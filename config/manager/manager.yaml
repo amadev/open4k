@@ -29,7 +29,7 @@ spec:
           - kopf
           - run
           - '-n'
-          - open4k-system
+          - open4k-devstack-system
           - '-m'
           - open4k.controllers.instance
           - '-L'
