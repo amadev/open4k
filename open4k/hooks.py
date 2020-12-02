@@ -21,7 +21,6 @@ async def wait_instance_ready(api_config, cloud, obj, os_obj):
             getattr(c, api_config["objects"]), api_config["get_"]
         )(**{f'{api_config["object"]}_id': obj.obj["status"]["object"]["id"]})
         os_obj = os_obj[list(os_obj)[0]]
-        print("!os_obj", os_obj)
         if os_obj["status"] == "ACTIVE":
             obj.patch(
                 {"status": {"object": os_obj}},
