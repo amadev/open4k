@@ -22,10 +22,11 @@ api:
   service: image
   objects: images
   object: image
-  get_: get
-  list: list
-  create: create
-  delete: delete
+  object_envelope: false
+  get_: get_image
+  list: list_images
+  create: create_image
+  delete: delete_image
 ---
 group: open4k
 version: v1alpha1
@@ -78,7 +79,7 @@ api:
   service: network
   objects: floatingips
   object: floatingip
-  get_: get_floatingips
+  get_: get_floatingip
   list: list_floatingips
   create: create_floatingip
   delete: delete_floatingip

@@ -1,0 +1,10 @@
+apiVersion: open4k.amadev.ru/v1alpha1
+kind: FloatingIP
+metadata:
+  name: floating-open4k-vm1
+spec:
+  cloud: devstack
+  body:
+    floatingip:
+      floating_network_id: ff969274-99ea-42d4-8fdd-6e334cec2d9c
+      port_id: 33bd8476-a7f7-4b66-9829-b84fafa1442f

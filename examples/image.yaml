@@ -1,0 +1,11 @@
+apiVersion: open4k.amadev.ru/v1alpha1
+kind: Image
+metadata:
+  name: mycirros1
+spec:
+  cloud: devstack
+  url: http://download.cirros-cloud.net/0.5.1/cirros-0.5.1-x86_64-disk.img
+  body:
+    container_format: bare
+    disk_format: qcow2
+    name: mycirros1
