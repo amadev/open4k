@@ -1,3 +1,4 @@
+import json
 import time
 
 from open4k import client
@@ -6,15 +7,18 @@ from open4k import settings
 from open4k.controllers import RESOURCES
 
 
-def import_resources(cloud, resource, list_filter={}):
+def import_resources(cloud, resource, list_filter=None, dry_run=False):
     klass = RESOURCES[resource]
     cl = client.get_client(
         settings.OPEN4K_NAMESPACE, cloud, klass.api["service"]
     )
     api_object = getattr(cl, klass.api["objects"])
     func = getattr(api_object, klass.api["list"])
-    os_objs = func(**list_filter)[klass.api["objects"]]
+    os_objs = func(**(list_filter or {}))[klass.api["objects"]]
     for os_obj in os_objs:
+        if dry_run:
+            print(json.dumps(os_obj))
+            continue
         part = os_obj.get("name")
         if not part:
             part = os_obj["id"]

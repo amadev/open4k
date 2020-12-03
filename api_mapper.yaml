@@ -24,7 +24,7 @@ api:
   object: image
   object_envelope: false
   get_: get_image
-  list: list_images
+  list: list
   create: create_image
   delete: delete_image
 ---

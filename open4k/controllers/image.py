@@ -21,7 +21,7 @@ class Image(pykube.objects.NamespacedAPIObject, kube.HelmBundleMixin):
         "object": "image",
         "object_envelope": False,
         "get_": "get_image",
-        "list": "list_images",
+        "list": "list",
         "create": "create_image",
         "delete": "delete_image",
     }
@@ -37,7 +37,7 @@ class Image(pykube.objects.NamespacedAPIObject, kube.HelmBundleMixin):
             "object": "image",
             "object_envelope": False,
             "get_": "get_image",
-            "list": "list_images",
+            "list": "list",
             "create": "create_image",
             "delete": "delete_image",
         }.get("object_envelope", True):
@@ -52,7 +52,7 @@ class Image(pykube.objects.NamespacedAPIObject, kube.HelmBundleMixin):
             "object": "image",
             "object_envelope": False,
             "get_": "get_image",
-            "list": "list_images",
+            "list": "list",
             "create": "create_image",
             "delete": "delete_image",
         }.get("object_envelope", True):
