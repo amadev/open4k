@@ -41,13 +41,12 @@ async def upload_image(c, klass, obj, os_obj):
 
     url = c.endpoint.rstrip("/") + f"/images/{image_id}/file"
     cmd = (
-        f"curl -i -X PUT -H X-Auth-Token:{c.token} "
+        f"curl -i -g -X PUT -H X-Auth-Token:{c.token} "
         f"-H Content-Type:application/octet-stream "
-        f"-d @/tmp/{image_id} "
+        f"--upload-file /tmp/{image_id} "
         f"{url}"
     )
     cmd = cmd.split()
-    print("!!!", cmd)
     subprocess.check_call(cmd)
 
 
