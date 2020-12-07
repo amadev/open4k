@@ -1,0 +1,54 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: import-mirantis-eu-1
+spec:
+  template:
+    spec:
+      containers:
+      - name: import-mirantis-eu-1
+        image: quay.io/amadev/open4k:latest
+        command:
+        - import_resources
+        - image
+        - --filter-image
+        - '{"name": "in:bionic-server-cloudimg-amd64-20200724,cirros"}'
+        - flavor
+        - --filter-flavor
+        - '{"sort_key": "vcpus", "limit": 10}'
+        - network
+        - --filter-network
+        - '{"name": "avolkov-net", "project_id": "2b1d2e02b738439eb217ea4bd2c44b7b"}'
+      restartPolicy: Never
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: import-mirantis-eu-2
+spec:
+  template:
+    spec:
+      containers:
+      - name: import-mirantis-eu-2
+        image: quay.io/amadev/open4k:latest
+        command:
+        - import_resources
+        - network
+        - --filter-network
+        - '{"name": "public"}'
+      restartPolicy: Never
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: import-mirantis-eu-3
+spec:
+  template:
+    spec:
+      containers:
+      - name: import-mirantis-eu-3
+        image: quay.io/amadev/open4k:latest
+        command:
+        - import_resources
+        - securitygroup
+      restartPolicy: Never

@@ -28,6 +28,8 @@ RUN set -ex; \
         python3.7-dbg \
         libpython3.7 \
         patch \
+        wget \
+        curl \
         ca-certificates; \
     apt-get download python3-distutils; \
     dpkg-deb -x python3-distutils*.deb /; \

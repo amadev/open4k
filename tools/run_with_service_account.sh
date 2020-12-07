@@ -98,10 +98,9 @@ set_kube_config_values() {
 # set_kube_config_values
 
 available_controllers=(
-    "-m open4k.controllers.instance"
-    "-m open4k.controllers.flavor"
+    "-m open4k.controllers"
 )
 
 controllers="${available_controllers[*]}"
 
-kopf run --dev -n open4k-devstack-system --liveness=http://:8090/healthz $controllers
+kopf run --dev -n open4k-system --liveness=http://:8090/healthz $controllers

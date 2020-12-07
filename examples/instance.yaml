@@ -1,4 +1,3 @@
----
 apiVersion: open4k.amadev.ru/v1alpha1
 kind: Instance
 metadata:
@@ -8,7 +7,10 @@ spec:
   body:
     server:
       name: open4k-vm1
-      imageRef: fb186de9-ef53-4fad-a944-2fabc4de0d93
-      flavorRef: c1
+      imageRef:
+      flavorRef:
       networks:
-        - uuid: ff969274-99ea-42d4-8fdd-6e334cec2d9c
+        - uuid:
+      security_group:
+        - name: avolkov-sg
+      user_data: I2Nsb3VkLWNvbmZpZwp1c2VyczoKICAtIG5hbWU6IHVidW50dQogICAgc3NoLWF1dGhvcml6ZWQta2V5czoKICAgICAgLSBzc2gtcnNhIEFBQUFCM056YUMxeWMyRUFBQUFEQVFBQkFBQUJBUUM0VUcrcmxXcEZnTVZ5a1RuUTlHb3hrTnl2OURJd3Bvd21MUUxkNlBWbzRpRTlBUjhsTFZDa0FIM21hZkFtaCtZMU5hSmFSYytzY2JzVWxjbUdLR0Mxc0FDTDhUSnVuUmpmZXMyMTF3UTRmcmRPTzZPT3BteWhwaTVhVVpzYmZvQzJuaitOQ2pwUWwxbjd4R0JiL0FUR2xWMHNvNmRsNDlWNFFJVnl6Sm5TMnp5aDlSUFE4L2VmaHBvZ0grL1Q2TDFFR0ZMc2tGTU45U1kxZUl6VUpHM2VHdTBrYmlDQVUwekN1REhwQmVQRGFWT0h3aDZNcDJKQldvbmxUNnRQNE1qRHJWM0NYSVVpYzF0S1FOYkJNeXFaQkFsVDRpS2gwR0QwVHd2MytvNFh1UXlZK2JhT3lIalI5RnJDYjlsaVI1Zko0ZGVNRG5BRHhoOVdrdXIwK0xySCBhbWFkZXZAZmxhc2htYW4KICAgIHN1ZG86IFsnQUxMPShBTEwpIE5PUEFTU1dEOkFMTCddCiAgICBncm91cHM6IHN1ZG8KICAgIHNoZWxsOiAvYmluL2Jhc2g=

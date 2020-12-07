@@ -1,12 +1,12 @@
 apiVersion: open4k.amadev.ru/v1alpha1
 kind: Flavor
 metadata:
-  name: myflavor4
+  name: myflavor1
 spec:
   cloud: devstack
   body:
     flavor:
-      name: myflavor4
+      name: myflavor1
       ram: 256
       vcpus: 1
       disk: 1

@@ -26,10 +26,10 @@ class Port(pykube.objects.NamespacedAPIObject, kube.HelmBundleMixin):
     }
 
     @staticmethod
-    def get_os_obj(c, obj_id):
-        os_obj = getattr(getattr(c, "ports"), "get_port")(
-            **{"port_id": obj_id}
-        )
+    def get_os_obj(c, obj_id, id_name=None):
+        if not id_name:
+            id_name = "port_id"
+        os_obj = getattr(getattr(c, "ports"), "get_port")(**{id_name: obj_id})
         if {
             "service": "network",
             "object": "port",
@@ -78,7 +78,12 @@ async def port_change_handler(body, name, namespace, **kwargs):
 
     if body.get("status", {}).get("applied") == True:
         LOG.info(f"{name} exists, updating ...")
-        os_obj = klass.get_os_obj(c, body["status"]["object"]["id"])
+        obj_id = body["status"]["object"].get("id")
+        id_name = None
+        if not obj_id:
+            id_name = "uuid"
+            obj_id = body["status"]["object"].get("uuid")
+        os_obj = klass.get_os_obj(c, obj_id, id_name)
         obj.patch(
             {"status": {"object": os_obj}},
             subresource="status",
