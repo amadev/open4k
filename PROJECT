@@ -4,9 +4,6 @@ projectName: open4k
 repo: github.com/amadev/open4k
 resources:
 - group: open4k
-  kind: Cloud
-  version: v1alpha1
-- group: open4k
   kind: Instance
   version: v1alpha1
 - group: open4k
