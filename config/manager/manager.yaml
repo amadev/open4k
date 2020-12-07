@@ -29,9 +29,9 @@ spec:
           - kopf
           - run
           - '-n'
-          - open4k-devstack-system
+          - open4k-system
           - '-m'
-          - open4k.controllers.instance
+          - open4k.controllers
           - '-L'
           - 'http://0.0.0.0:32768/healthz'
         env:

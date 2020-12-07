@@ -3,7 +3,7 @@ kind: Namespace
 metadata:
   labels:
     control-plane: controller-manager
-  name: open4k-devstack-system
+  name: open4k-system
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -404,8 +404,8 @@ status:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: open4k-devstack-leader-election-role
-  namespace: open4k-devstack-system
+  name: open4k-leader-election-role
+  namespace: open4k-system
 rules:
 - apiGroups:
   - ""
@@ -439,7 +439,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
-  name: open4k-devstack-manager-role
+  name: open4k-manager-role
 rules:
 - apiGroups:
   - ""
@@ -597,7 +597,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: open4k-devstack-proxy-role
+  name: open4k-proxy-role
 rules:
 - apiGroups:
   - authentication.k8s.io
@@ -615,7 +615,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
-  name: open4k-devstack-metrics-reader
+  name: open4k-metrics-reader
 rules:
 - nonResourceURLs:
   - /metrics
@@ -625,50 +625,50 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: open4k-devstack-leader-election-rolebinding
-  namespace: open4k-devstack-system
+  name: open4k-leader-election-rolebinding
+  namespace: open4k-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: open4k-devstack-leader-election-role
+  name: open4k-leader-election-role
 subjects:
 - kind: ServiceAccount
   name: default
-  namespace: open4k-devstack-system
+  namespace: open4k-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: open4k-devstack-manager-rolebinding
+  name: open4k-manager-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: open4k-devstack-manager-role
+  name: open4k-manager-role
 subjects:
 - kind: ServiceAccount
   name: default
-  namespace: open4k-devstack-system
+  namespace: open4k-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: open4k-devstack-proxy-rolebinding
+  name: open4k-proxy-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: open4k-devstack-proxy-role
+  name: open4k-proxy-role
 subjects:
 - kind: ServiceAccount
   name: default
-  namespace: open4k-devstack-system
+  namespace: open4k-system
 ---
 apiVersion: v1
 kind: Service
 metadata:
   labels:
     control-plane: controller-manager
-  name: open4k-devstack-controller-manager-metrics-service
-  namespace: open4k-devstack-system
+  name: open4k-controller-manager-metrics-service
+  namespace: open4k-system
 spec:
   ports:
   - name: https
@@ -682,8 +682,8 @@ kind: Deployment
 metadata:
   labels:
     control-plane: controller-manager
-  name: open4k-devstack-controller-manager
-  namespace: open4k-devstack-system
+  name: open4k-controller-manager
+  namespace: open4k-system
 spec:
   replicas: 1
   selector:
@@ -699,9 +699,9 @@ spec:
         - kopf
         - run
         - -n
-        - open4k-devstack-system
+        - open4k-system
         - -m
-        - open4k.controllers.instance
+        - open4k.controllers
         - -L
         - http://0.0.0.0:32768/healthz
         env:
