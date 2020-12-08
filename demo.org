@@ -1,0 +1,203 @@
+* Demo
+
+** Install Open4K
+
+- check nodes
+- check namespaces
+
+kubectl apply -f config/install.yaml
+
+** Add clouds secret
+
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Secret
+metadata:
+  name: open4k
+type: Opaque
+stringData:
+  clouds.yaml: |
+    clouds:
+      devstack:
+        project_domain_id: default
+        region_name: RegionOne
+        user_domain_name: Default
+        project_name: admin
+        identity_api_version: 3
+        interface: public
+        auth:
+          password: $(cpp devstack)
+          username: $(cpp devstack 3)
+          auth_url: $(cpp devstack 5)
+      mirantis_eu:
+        project_domain_id: default
+        region_name: RegionOne
+        user_domain_name: ldap_mirantis
+        project_name: oscore-team
+        identity_api_version: 3
+        interface: public
+        auth:
+          password: $(cpp mirantis_eu)
+          username: $(cpp mirantis_eu 3)
+          auth_url: $(cpp mirantis_eu 5)
+EOF
+
+** Create flavor, image, instance in devstack
+
+- check no instance, flavor, image exists
+
+cat <<EOF | kubectl apply -f -
+apiVersion: open4k.amadev.ru/v1alpha1
+kind: Flavor
+metadata:
+  name: myflavor1
+spec:
+  cloud: devstack
+  body:
+    flavor:
+      name: myflavor1
+      ram: 256
+      vcpus: 1
+      disk: 1
+EOF
+
+cat <<EOF | kubectl apply -f -
+apiVersion: open4k.amadev.ru/v1alpha1
+kind: Image
+metadata:
+  name: mycirros1
+spec:
+  cloud: devstack
+  url: http://download.cirros-cloud.net/0.5.1/cirros-0.5.1-x86_64-disk.img
+  body:
+    container_format: bare
+    disk_format: qcow2
+    name: mycirros1
+EOF
+
+cat <<EOF | kubectl apply -f -
+apiVersion: open4k.amadev.ru/v1alpha1
+kind: Instance
+metadata:
+  name: open4k-vm1
+spec:
+  cloud: devstack
+  body:
+    server:
+      name: open4k-vm1
+      imageRef:
+      flavorRef:
+EOF
+
+virsh --connect qemu+ssh://dev01/system console
+
+** Import flavor, image, networks, security gropus from Mirantis EU
+
+cat <<EOF | kubectl apply -f -
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: import-mirantis-eu-1
+spec:
+  template:
+    spec:
+      containers:
+      - name: import-mirantis-eu-1
+        image: quay.io/amadev/open4k:latest
+        command:
+        - import_resources
+        - image
+        - --filter-image
+        - '{"name": "in:bionic-server-cloudimg-amd64-20200724,cirros"}'
+        - flavor
+        - --filter-flavor
+        - '{"sort_key": "vcpus", "limit": 10}'
+        - network
+        - --filter-network
+        - '{"name": "avolkov-net", "project_id": "2b1d2e02b738439eb217ea4bd2c44b7b"}'
+      restartPolicy: Never
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: import-mirantis-eu-2
+spec:
+  template:
+    spec:
+      containers:
+      - name: import-mirantis-eu-2
+        image: quay.io/amadev/open4k:latest
+        command:
+        - import_resources
+        - network
+        - --filter-network
+        - '{"name": "public"}'
+      restartPolicy: Never
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: import-mirantis-eu-3
+spec:
+  template:
+    spec:
+      containers:
+      - name: import-mirantis-eu-3
+        image: quay.io/amadev/open4k:latest
+        command:
+        - import_resources
+        - securitygroup
+      restartPolicy: Never
+EOF
+
+** Create instance in Mirantis EU
+
+cat <<EOF | kubectl apply -f -
+apiVersion: open4k.amadev.ru/v1alpha1
+kind: Instance
+metadata:
+  name: avolkov-vm2
+spec:
+  cloud: mirantis_eu
+  body:
+    server:
+      name: avolkov-vm2
+      imageRef:
+      flavorRef:
+      networks:
+        - uuid:
+      security_groups:
+        - name: avolkov-sg
+      user_data: I2Nsb3VkLWNvbmZpZwp1c2VyczoKICAtIG5hbWU6IHVidW50dQogICAgc3NoLWF1dGhvcml6ZWQta2V5czoKICAgICAgLSBzc2gtcnNhIEFBQUFCM056YUMxeWMyRUFBQUFEQVFBQkFBQUJBUUM0VUcrcmxXcEZnTVZ5a1RuUTlHb3hrTnl2OURJd3Bvd21MUUxkNlBWbzRpRTlBUjhsTFZDa0FIM21hZkFtaCtZMU5hSmFSYytzY2JzVWxjbUdLR0Mxc0FDTDhUSnVuUmpmZXMyMTF3UTRmcmRPTzZPT3BteWhwaTVhVVpzYmZvQzJuaitOQ2pwUWwxbjd4R0JiL0FUR2xWMHNvNmRsNDlWNFFJVnl6Sm5TMnp5aDlSUFE4L2VmaHBvZ0grL1Q2TDFFR0ZMc2tGTU45U1kxZUl6VUpHM2VHdTBrYmlDQVUwekN1REhwQmVQRGFWT0h3aDZNcDJKQldvbmxUNnRQNE1qRHJWM0NYSVVpYzF0S1FOYkJNeXFaQkFsVDRpS2gwR0QwVHd2MytvNFh1UXlZK2JhT3lIalI5RnJDYjlsaVI1Zko0ZGVNRG5BRHhoOVdrdXIwK0xySCBhbWFkZXZAZmxhc2htYW4KICAgIHN1ZG86IFsnQUxMPShBTEwpIE5PUEFTU1dEOkFMTCddCiAgICBncm91cHM6IHN1ZG8KICAgIHNoZWxsOiAvYmluL2Jhc2g=
+EOF
+
+** Add floating IP
+
+cat <<EOF | kubectl apply -f -
+apiVersion: open4k.amadev.ru/v1alpha1
+kind: FloatingIP
+metadata:
+  name: floating-open4k-vm1
+spec:
+  cloud: mirantis_eu
+  body:
+    floatingip:
+      floating_network_id:
+      port_id:
+EOF
+
+** Use api-mapper to create new API (resource providers)
+
+** Use resource providers API
+
+cat <<EOF | kubectl apply -f -
+apiVersion: open4k.amadev.ru/v1alpha1
+kind: Resourceprovider
+metadata:
+  name: rp1-nfs-share
+spec:
+  cloud: devstack
+  body:
+    name: NFS Share
+    uuid: 7d2590ae-fb85-4080-9306-058b4c915e3f
+EOF
