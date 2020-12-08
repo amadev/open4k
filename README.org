@@ -19,7 +19,7 @@ kubectl apply -f https://raw.githubusercontent.com/amadev/open4k/master/config/i
 
 ** How to use?
 
-1. Create client configuration for the clouds you want to manage.
+1. Create client configuration for the clouds you want to manage
 
 #+BEGIN_SRC text
 apiVersion: v1
@@ -43,7 +43,22 @@ stringData:
           auth_url: http://172.18.237.203/identity
 #+END_SRC
 
-2. Create a VM.
+2. Creates resources as usual
+
+#+BEGIN_SRC text
+apiVersion: open4k.amadev.ru/v1alpha1
+kind: Flavor
+metadata:
+  name: myflavor
+spec:
+  cloud: devstack
+  body:
+    flavor:
+      name: myflavor
+      ram: 256
+      vcpus: 1
+      disk: 1
+#+END_SRC
 
 #+BEGIN_SRC text
 apiVersion: open4k.amadev.ru/v1alpha1
@@ -59,4 +74,29 @@ spec:
       flavorRef : 1
 #+END_SRC
 
-3. Profit.
+3. Import existing OpenStack resources with import_resource command or job if needed
+
+4. Configure additional param for Kubernetes object if needed
+  - cloud (string) - in what cloud resource created
+  - api_version  (string) - OpenStack API version
+  - managed (bool) - if it's created from Kubernetes or just imported
+  - reconcile (bool) - recreate resource if it was deleted/failed.
+
+**  How is it implemented?
+
+The main idea is to have a minimal overhead over OS API, so the source
+of info is OS API docs and API ref plus knowledge of how to work with
+Kubernetes resources.  Open4K contains two parts os-sdk-light and
+api-mapper.
+- OpenStack services don't have a well defined API schema for automatic parsing.
+  The Main source of truth is api-ref that is not easily parsable
+  especially for API version related things. os-sdk-light is a very
+  light OpenStack client with OpenAPI schema. It authorizes OpenStack
+  identity service and use Bravado library to generate and validate
+  requests and responses.  The API schema is semi-manually generated
+  on a per API version basis.
+- api-mapper - is a code generation tool that merges Kubernetes objects and OpenStack API together.
+  Default behavior is translation of Kubernetes CRUD requests to
+  OpenStack API requests, but it can be totally redefined or modified
+  with hooks. For example, an image object uses a post_create hook to
+  download a file from the specified URL.

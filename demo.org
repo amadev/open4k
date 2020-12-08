@@ -4,6 +4,7 @@
 
 - check nodes
 - check namespaces
+- check customresources
 
 kubectl apply -f config/install.yaml
 
