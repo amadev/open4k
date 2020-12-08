@@ -48,6 +48,11 @@ async def upload_image(c, klass, obj, os_obj):
     )
     cmd = cmd.split()
     subprocess.check_call(cmd)
+    os_obj = klass.get_os_obj(c, obj.obj["status"]["object"]["id"])
+    obj.patch(
+        {"status": {"object": os_obj}},
+        subresource="status",
+    )
 
 
 HOOKS = {
