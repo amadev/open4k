@@ -19,7 +19,7 @@ kubectl apply -f https://raw.githubusercontent.com/amadev/open4k/master/config/i
 
 ** How to use?
 
-1. Create client configuration for the clouds you want to manage
+*** Create client configuration for the clouds you want to manage
 
 #+BEGIN_SRC text
 apiVersion: v1
@@ -43,7 +43,7 @@ stringData:
           auth_url: http://172.18.237.203/identity
 #+END_SRC
 
-2. Creates resources as usual
+*** Creates resources as usual
 
 #+BEGIN_SRC text
 apiVersion: open4k.amadev.ru/v1alpha1
@@ -74,9 +74,9 @@ spec:
       flavorRef : 1
 #+END_SRC
 
-3. Import existing OpenStack resources with import_resource command or job if needed
+*** Import existing OpenStack resources with import_resource command or job if needed
 
-4. Configure additional param for Kubernetes object if needed
+*** Configure additional param for Kubernetes object if needed
   - cloud (string) - in what cloud resource created
   - api_version  (string) - OpenStack API version
   - managed (bool) - if it's created from Kubernetes or just imported
