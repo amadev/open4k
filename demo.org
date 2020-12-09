@@ -1,12 +1,35 @@
-* Demo
+* Open4K Demo
+
+Manage multiple OpenStack clouds with Open4K:
+- devstack (homelab)
+- Mirantis EU
+
+Project: github.com/amadev/open4k
+This demo: https://bit.ly/2K3YYUn
 
 ** Install Open4K
 
-- check nodes
-- check namespaces
-- check customresources
+# check nodes
+
+k get node
+
+# check namespaces
+
+k get namespace
+
+# check customresources
+
+k get customresourcedefinition | grep open4k
+
+# install open4k
+
+cd ~/m/open4k
 
 kubectl apply -f config/install.yaml
+
+ksns open4k-system
+
+k get po
 
 ** Add clouds secret
 
@@ -43,9 +66,13 @@ stringData:
           auth_url: $(cpp mirantis_eu 5)
 EOF
 
-** Create flavor, image, instance in devstack
+** Create OpenStack resources in devstack
 
-- check no instance, flavor, image exists
+# check no instance, flavor, image exists
+
+k get flavor
+k get image
+k get instance
 
 cat <<EOF | kubectl apply -f -
 apiVersion: open4k.amadev.ru/v1alpha1
@@ -76,6 +103,14 @@ spec:
     name: mycirros1
 EOF
 
+k get flavor myflavor1 -o yaml
+
+k get image mycirros1 -o yaml
+
+flavor=$(kubectl get flavor myflavor1 -o json | jq -r .status.object.id)
+
+image=$(kubectl get image mycirros1 -o json | jq -r .status.object.id)
+
 cat <<EOF | kubectl apply -f -
 apiVersion: open4k.amadev.ru/v1alpha1
 kind: Instance
@@ -86,13 +121,17 @@ spec:
   body:
     server:
       name: open4k-vm1
-      imageRef:
-      flavorRef:
+      imageRef: $image
+      flavorRef: $flavor
 EOF
 
-virsh --connect qemu+ssh://dev01/system console
+k get instance open4k-vm1 -o yaml
 
-** Import flavor, image, networks, security gropus from Mirantis EU
+instance=$(kubectl get instance open4k-vm1 -o json | jq -r .status.object.id)
+
+virsh --connect qemu+ssh://dev01/system console $instance
+
+** Import OpenStack resources from Mirantis EU
 
 cat <<EOF | kubectl apply -f -
 apiVersion: batch/v1
@@ -115,7 +154,7 @@ spec:
         - '{"sort_key": "vcpus", "limit": 10}'
         - network
         - --filter-network
-        - '{"name": "avolkov-net", "project_id": "2b1d2e02b738439eb217ea4bd2c44b7b"}'
+        - '{"name": "avolkov-net"}'
       restartPolicy: Never
 ---
 apiVersion: batch/v1
@@ -134,24 +173,26 @@ spec:
         - --filter-network
         - '{"name": "public"}'
       restartPolicy: Never
----
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: import-mirantis-eu-3
-spec:
-  template:
-    spec:
-      containers:
-      - name: import-mirantis-eu-3
-        image: quay.io/amadev/open4k:latest
-        command:
-        - import_resources
-        - securitygroup
-      restartPolicy: Never
 EOF
 
+k get po
+
+k get job
+
+k get flavor
+k get image
+k get network
+
 ** Create instance in Mirantis EU
+
+image=$(kubectl get image mirantis-eu-bionic-server-cloudimg-amd64-20200724 -o json | jq -r .status.object.id)
+echo $image
+
+flavor=$(kubectl get flavor mirantis-eu-dev.kvm -o json | jq -r .status.object.id)
+echo $flavor
+
+network=$(kubectl get network mirantis-eu-avolkov-net -o json | jq -r .status.object.id)
+echo $network
 
 cat <<EOF | kubectl apply -f -
 apiVersion: open4k.amadev.ru/v1alpha1
@@ -163,16 +204,27 @@ spec:
   body:
     server:
       name: avolkov-vm2
-      imageRef:
-      flavorRef:
+      imageRef: $image
+      flavorRef: $flavor
       networks:
-        - uuid:
+      - uuid: $network
       security_groups:
-        - name: avolkov-sg
+      - name: avolkov-sg
       user_data: I2Nsb3VkLWNvbmZpZwp1c2VyczoKICAtIG5hbWU6IHVidW50dQogICAgc3NoLWF1dGhvcml6ZWQta2V5czoKICAgICAgLSBzc2gtcnNhIEFBQUFCM056YUMxeWMyRUFBQUFEQVFBQkFBQUJBUUM0VUcrcmxXcEZnTVZ5a1RuUTlHb3hrTnl2OURJd3Bvd21MUUxkNlBWbzRpRTlBUjhsTFZDa0FIM21hZkFtaCtZMU5hSmFSYytzY2JzVWxjbUdLR0Mxc0FDTDhUSnVuUmpmZXMyMTF3UTRmcmRPTzZPT3BteWhwaTVhVVpzYmZvQzJuaitOQ2pwUWwxbjd4R0JiL0FUR2xWMHNvNmRsNDlWNFFJVnl6Sm5TMnp5aDlSUFE4L2VmaHBvZ0grL1Q2TDFFR0ZMc2tGTU45U1kxZUl6VUpHM2VHdTBrYmlDQVUwekN1REhwQmVQRGFWT0h3aDZNcDJKQldvbmxUNnRQNE1qRHJWM0NYSVVpYzF0S1FOYkJNeXFaQkFsVDRpS2gwR0QwVHd2MytvNFh1UXlZK2JhT3lIalI5RnJDYjlsaVI1Zko0ZGVNRG5BRHhoOVdrdXIwK0xySCBhbWFkZXZAZmxhc2htYW4KICAgIHN1ZG86IFsnQUxMPShBTEwpIE5PUEFTU1dEOkFMTCddCiAgICBncm91cHM6IHN1ZG8KICAgIHNoZWxsOiAvYmluL2Jhc2g=
 EOF
 
+k get instance avolkov-vm2 -o yaml
+
 ** Add floating IP
+
+network=$(kubectl get network mirantis-eu-public -o json | jq -r .status.object.id)
+echo $network
+
+instance=$(kubectl get instance avolkov-vm2 -o json | jq -r .status.object.id)
+echo $instance
+
+port=$(kubectl get port -o json | jq -r '.items[] | select(.status.object.device_id | contains("'$instance'")) | .status.object.id')
+echo $port
 
 cat <<EOF | kubectl apply -f -
 apiVersion: open4k.amadev.ru/v1alpha1
@@ -183,13 +235,51 @@ spec:
   cloud: mirantis_eu
   body:
     floatingip:
-      floating_network_id:
-      port_id:
+      floating_network_id: $network
+      port_id: $port
 EOF
+
+ip=$(kubectl get floatingip floating-open4k-vm1 -o json | jq -r '.status.object.floating_ip_address')
+echo $ip
+
+ssh ubuntu@$ip
 
 ** Use api-mapper to create new API (resource providers)
 
+# this step demostrates how a new Kubernetes mapping to OpenStack API
+# can be created
+
+# for example we have Placement service resource provider API here
+cat ~/p/os-sdk-light/os_sdk_light/schemas/placement.yaml
+
+# let's add that API as Resourceprovider kind
+cat <<EOF >> api_mapper.yaml
+---
+group: open4k
+version: v1alpha1
+domain: amadev.ru
+kind: Resourceprovider
+plural: resourceproviders
+api:
+  service: placement
+  object: resource_provider
+  objects: resource_providers
+  object_envelope: false
+  get_: get_resource_provider
+  list: list_resource_providers
+  create: create_resource_provider
+  delete: delete_resource_provider
+EOF
+
+# we need to delete previously deployed controller manager
+kubectl delete deployment open4k-controller-manager
+
+# and run local version
+make api-mapper install run &
+
 ** Use resource providers API
+
+# let's create a resourse provider
 
 cat <<EOF | kubectl apply -f -
 apiVersion: open4k.amadev.ru/v1alpha1
@@ -202,3 +292,19 @@ spec:
     name: NFS Share
     uuid: 7d2590ae-fb85-4080-9306-058b4c915e3f
 EOF
+
+# it has to be mapped to OpenStack as well
+kubectl get resourceprovider -o yaml
+
+** Cleanup
+
+for t in $(echo flavor image instance port securitygroup floatingip network resourceprovider); do
+   for i in $(kubectl get $t -o=jsonpath='{.items[*].metadata.name}'); do
+      echo $t $i
+      kubectl delete $t $i
+   done
+done
+
+k delete customresourcedefinition resourceproviders.open4k.amadev.ru
+
+kubectl delete -f config/install.yaml
